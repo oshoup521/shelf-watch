@@ -62,6 +62,7 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"expiry" | "name">("expiry");
+  const [isOffline, setIsOffline] = useState(false);
 
   // ── Pull-to-Refresh ──
   const mobileRef = useRef<HTMLDivElement>(null);
@@ -70,6 +71,35 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
   const [pullY, setPullY] = useState(0);
   const PULL_THRESHOLD = 65;
   const MAX_PULL = 80;
+
+  const CACHE_KEY = `sw-inventory-${userId}`;
+
+  // ── Offline detection ──
+  useEffect(() => {
+    setIsOffline(!navigator.onLine);
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  // ── Cache initialInventory to localStorage on first load ──
+  useEffect(() => {
+    if (initialInventory.length > 0) {
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify(initialInventory)); } catch { /* quota exceeded */ }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Sync inventory to localStorage whenever it updates ──
+  useEffect(() => {
+    if (inventory.length > 0) {
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify(inventory)); } catch { /* quota exceeded */ }
+    }
+  }, [inventory]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const saved = localStorage.getItem("sw-theme") as "dark" | "light" | null;
@@ -102,14 +132,28 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("inventory").select("*").eq("user_id", userId).order("expiry_date", { ascending: true });
-    const items: InventoryItem[] = (data ?? []).map((item: Omit<InventoryItem, "status">) => ({
-      ...item, status: computeStatus(item.expiry_date),
-    }));
-    setInventory(items);
+    try {
+      const { data, error } = await supabase
+        .from("inventory").select("*").eq("user_id", userId).order("expiry_date", { ascending: true });
+      if (error) throw error;
+      const items: InventoryItem[] = (data ?? []).map((item: Omit<InventoryItem, "status">) => ({
+        ...item, status: computeStatus(item.expiry_date),
+      }));
+      setInventory(items);
+      setIsOffline(false);
+    } catch {
+      // Network failure — load from cache
+      setIsOffline(true);
+      try {
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (cached) {
+          const parsed: Omit<InventoryItem, "status">[] = JSON.parse(cached);
+          setInventory(parsed.map((item) => ({ ...item, status: computeStatus(item.expiry_date) })));
+        }
+      } catch { /* corrupt cache */ }
+    }
     setLoading(false);
-  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [userId, CACHE_KEY]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDelete = useCallback((id: string) => {
     setInventory((prev) => prev.filter((item) => item.id !== id));
@@ -240,6 +284,14 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
     ? `🚨 ${expiredItems.length} item expire ho gaye`
     : `⏰ ${expiringSoonItems.length} item jald expire honge`;
 
+  /* ─────────────────── OFFLINE BANNER ─────────────────── */
+  const OfflineBanner = () => !isOffline ? null : (
+    <div style={{ background: "#78350f", color: "#fef3c7", borderRadius: "12px", padding: "10px 14px", marginBottom: "10px", fontSize: "13px", display: "flex", alignItems: "center", gap: "8px" }}>
+      <span>📡</span>
+      <span>Offline ho — cached data dikh raha hai. Internet aane pe refresh karo.</span>
+    </div>
+  );
+
   /* ─────────────────── ALERT BANNER (shared) ─────────────────── */
   const AlertBanner = ({ cls }: { cls: string }) => !showAlert ? null : (
     <div className={cls}>
@@ -327,6 +379,7 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
             <div className="sw-stat sw-stat--red"><span className="sw-stat-num">{expired}</span><span className="sw-stat-label">Expired</span></div>
           </div>
 
+          <OfflineBanner />
           <AlertBanner cls="sw-alert-card" />
 
           {/* Search + Sort */}
@@ -486,6 +539,7 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
 
           {/* Main content */}
           <main className="dsk-main">
+            <OfflineBanner />
             <AlertBanner cls="sw-alert-card" />
 
             <div className="dsk-main-header">
