@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import ToastProvider from "@/components/Toast";
 
@@ -39,7 +40,11 @@ export default function RootLayout({
     <html lang="en" className={`${geistSans.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col">
         {/* Anti-FOUC: set theme before first paint */}
-        <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('sw-theme')||(window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.dataset.theme=t;}catch(e){}` }} />
+        <Script
+          id="sw-theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('sw-theme')||(window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.dataset.theme=t;}catch(e){}` }}
+        />
         {/* Splash screen — visible until JS hydrates and hides it */}
         <div id="splash">
           <div id="splash-logo">🛒</div>

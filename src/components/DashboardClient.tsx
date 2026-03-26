@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase, InventoryItem } from "@/lib/supabase";
 import ItemCard from "@/components/ItemCard";
 import AddItemModal from "@/components/AddItemModal";
@@ -59,6 +59,14 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
   const [showAlertSheet, setShowAlertSheet] = useState<"expired" | "expiring_soon" | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
 
+  // ── Pull-to-Refresh ──
+  const mobileRef = useRef<HTMLDivElement>(null);
+  const touchStartY = useRef(-1);
+  const touchPullY = useRef(0);
+  const [pullY, setPullY] = useState(0);
+  const PULL_THRESHOLD = 65;
+  const MAX_PULL = 80;
+
   useEffect(() => {
     const saved = localStorage.getItem("sw-theme") as "dark" | "light" | null;
     const preferred = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
@@ -107,6 +115,48 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
     setShowModal(false);
     refresh();
   }, [refresh]);
+
+  // ── Pull-to-Refresh touch handler ──
+  useEffect(() => {
+    const el = mobileRef.current;
+    if (!el) return;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (window.scrollY === 0) {
+        touchStartY.current = e.touches[0].clientY;
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (touchStartY.current < 0) return;
+      const delta = e.touches[0].clientY - touchStartY.current;
+      if (delta > 5) {
+        e.preventDefault();
+        const eased = Math.min(delta * 0.5, MAX_PULL);
+        touchPullY.current = eased;
+        setPullY(eased);
+      }
+    };
+
+    const onTouchEnd = () => {
+      if (touchPullY.current >= PULL_THRESHOLD) {
+        refresh();
+      }
+      touchStartY.current = -1;
+      touchPullY.current = 0;
+      setPullY(0);
+    };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [refresh]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = inventory.filter((item) => filter === "all" || item.status === filter);
   const total = inventory.length;
@@ -166,7 +216,7 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
       {/* ══════════════════════════════════════════
           MOBILE LAYOUT  (hidden on ≥ 768px)
       ══════════════════════════════════════════ */}
-      <div className="mobile-only sw-bg" style={{ minHeight: "100dvh", paddingBottom: "calc(5rem + env(safe-area-inset-bottom))" }}>
+      <div ref={mobileRef} className="mobile-only sw-bg" style={{ minHeight: "100dvh", paddingBottom: "calc(5rem + env(safe-area-inset-bottom))" }}>
 
         <header className="sw-header" style={{ paddingTop: "env(safe-area-inset-top)" }}>
           <div className="sw-header-inner">
@@ -184,6 +234,29 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
             </div>
           </div>
         </header>
+
+        {/* ── Pull-to-Refresh Indicator ── */}
+        <div
+          className="sw-ptr-badge"
+          aria-live="polite"
+          aria-label={loading ? "Refresh ho raha hai" : pullY >= PULL_THRESHOLD ? "Chhod do refresh ke liye" : "Upar se neeche khicho"}
+          style={{
+            transform: pullY > 0
+              ? `translateX(-50%) translateY(${(pullY / MAX_PULL) * 100 - 100}%)`
+              : loading
+              ? "translateX(-50%) translateY(0%)"
+              : "translateX(-50%) translateY(-100%)",
+            transition: pullY > 0 ? "none" : "transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease",
+            opacity: pullY > 0 ? pullY / MAX_PULL : loading ? 1 : 0,
+            top: `calc(58px + env(safe-area-inset-top))`,
+          }}
+        >
+          {loading
+            ? <span className="sw-ptr-spinner" />
+            : <span className="sw-ptr-arrow" style={{ transform: `rotate(${pullY >= PULL_THRESHOLD ? 180 : 0}deg)` }}>↓</span>
+          }
+          <span>{loading ? "Refresh ho raha hai..." : pullY >= PULL_THRESHOLD ? "Chhod do! 🔄" : "Khicho refresh ke liye"}</span>
+        </div>
 
         <div className="sw-content">
           <div className="sw-stats">
