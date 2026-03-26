@@ -117,7 +117,7 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
     const updatedList = [...currentList, ...newEntries];
     saveShoppingList(userId, updatedList);
     setShoppingList(updatedList);
-    showToast("Kuch items shopping list mein add ho gaye 🛒", "info");
+    showToast("Kuch items shopping list mein add ho gaye 🛒", "success");
   }, [inventory, userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Custom Categories ──
