@@ -20,6 +20,7 @@ export default function CameraScanner({ onScanSuccess, onSwitchToManual }: Props
   const streamRef = useRef<MediaStream | null>(null);
   const [scanning, setScanning] = useState(false);
   const [cameraError, setCameraError] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -52,21 +53,37 @@ export default function CameraScanner({ onScanSuccess, onSwitchToManual }: Props
 
   async function handleScan() {
     if (!videoRef.current) return;
+
+    const video = videoRef.current;
+
+    // Video abhi ready nahi hai — dimensions 0 hain
+    if (!video.videoWidth || !video.videoHeight) {
+      showToast("Camera abhi load ho rahi hai, thoda ruko", "warning");
+      return;
+    }
+
     setScanning(true);
 
-    // Capture frame
-    const video = videoRef.current;
+    // Capture frame and compress to max 600px (mobile cameras are very high-res)
+    const MAX_DIM = 600;
+    let w = video.videoWidth;
+    let h = video.videoHeight;
+    if (w > MAX_DIM || h > MAX_DIM) {
+      if (w > h) { h = Math.round((h * MAX_DIM) / w); w = MAX_DIM; }
+      else { w = Math.round((w * MAX_DIM) / h); h = MAX_DIM; }
+    }
+
     const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    canvas.width = w;
+    canvas.height = h;
     const ctx = canvas.getContext("2d");
     if (!ctx) {
       setScanning(false);
       return;
     }
-    ctx.drawImage(video, 0, 0);
+    ctx.drawImage(video, 0, 0, w, h);
     const imageBase64 = canvas
-      .toDataURL("image/jpeg", 0.8)
+      .toDataURL("image/jpeg", 0.75)
       .replace(/^data:image\/jpeg;base64,/, "");
 
     try {
@@ -78,7 +95,11 @@ export default function CameraScanner({ onScanSuccess, onSwitchToManual }: Props
       const data = await res.json();
 
       if (data.error) {
-        showToast("Scan nahi hua, manually enter karo", "warning");
+        if (data.error === "low_confidence") {
+          showToast("Item clearly nahi dikh raha, dobara try karo ya manually enter karo", "warning");
+        } else {
+          showToast("Scan nahi hua, manually enter karo", "warning");
+        }
         onSwitchToManual();
       } else {
         onScanSuccess(data as ScanResult);
@@ -116,9 +137,18 @@ export default function CameraScanner({ onScanSuccess, onSwitchToManual }: Props
         autoPlay
         playsInline
         muted
+        onCanPlay={() => setCameraReady(true)}
         className="w-full rounded-xl bg-black"
         style={{ maxHeight: "50vh" }}
       />
+
+      {/* Camera loading overlay */}
+      {!cameraReady && (
+        <div className="absolute inset-0 bg-black/70 rounded-xl flex flex-col items-center justify-center gap-2">
+          <div className="w-7 h-7 border-[3px] border-white border-t-transparent rounded-full animate-spin" />
+          <p className="text-white text-sm">Camera load ho rahi hai...</p>
+        </div>
+      )}
 
       {/* Scanning overlay */}
       {scanning && (
@@ -131,10 +161,10 @@ export default function CameraScanner({ onScanSuccess, onSwitchToManual }: Props
       <div className="px-4 pb-4 pt-3">
         <button
           onClick={handleScan}
-          disabled={scanning}
+          disabled={scanning || !cameraReady}
           className="w-full min-h-[52px] bg-green-600 hover:bg-green-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-semibold rounded-2xl transition-colors"
         >
-          {scanning ? "Scanning..." : "📷 Scan Karo"}
+          {scanning ? "Scanning..." : !cameraReady ? "Camera load ho rahi hai..." : "📷 Scan Karo"}
         </button>
       </div>
     </div>
