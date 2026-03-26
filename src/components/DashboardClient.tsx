@@ -201,7 +201,7 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
           }
         }
       )
-      .subscribe((status) => {
+      .subscribe((status: string) => {
         setRealtimeConnected(status === "SUBSCRIBED");
       });
 
