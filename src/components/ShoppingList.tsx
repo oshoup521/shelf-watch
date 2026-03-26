@@ -146,6 +146,9 @@ export default function ShoppingList({ userId, shoppingList, setShoppingList, su
                     <span style={{ fontSize: 11, color: "var(--sw-muted)", marginLeft: 6 }}>
                       {item.status === "expired" ? "🔴 Expired" : "🟡 Jald Expire"}
                     </span>
+                    <span style={{ fontSize: 11, color: "var(--sw-muted)", marginLeft: 6 }}>
+                      · {item.quantity} {item.quantity_unit ?? "pcs"} bacha
+                    </span>
                   </div>
                   <button
                     onClick={() => handleAddSuggested(item)}

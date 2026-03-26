@@ -21,7 +21,11 @@ export function getShoppingList(userId: string): ShoppingListItem[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(storageKey(userId));
-    return raw ? (JSON.parse(raw) as ShoppingListItem[]) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as ShoppingListItem[];
+    // Deduplicate by id in case of stale/corrupted data
+    const seen = new Set<string>();
+    return parsed.filter((i) => i.id && !seen.has(i.id) && seen.add(i.id));
   } catch {
     return [];
   }
@@ -39,7 +43,8 @@ export function addToShoppingList(
   item: Omit<ShoppingListItem, "checked" | "addedAt">
 ): ShoppingListItem[] {
   const list = getShoppingList(userId);
-  // Avoid duplicates by fromInventoryId
+  // Avoid duplicates by id or fromInventoryId
+  if (list.some((i) => i.id === item.id)) return list;
   if (item.fromInventoryId && list.some((i) => i.fromInventoryId === item.fromInventoryId)) {
     return list;
   }

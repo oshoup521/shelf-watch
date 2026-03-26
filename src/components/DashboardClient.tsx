@@ -10,7 +10,7 @@ import AnalyticsModal from "@/components/AnalyticsModal";
 import { subscribeToPush, getNotificationStatus, unsubscribeFromPush } from "@/lib/pushNotifications";
 import { showToast } from "@/lib/toastStore";
 import { useCategories } from "@/hooks/useCategories";
-import { ShoppingListItem, getShoppingList, saveShoppingList } from "@/lib/shoppingListStore";
+import { ShoppingListItem, getShoppingList } from "@/lib/shoppingListStore";
 
 type Filter = "all" | "expiring_soon" | "expired";
 
@@ -103,33 +103,6 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
   useEffect(() => {
     setShoppingList(getShoppingList(userId));
   }, [userId]);
-
-  // Auto-add expired/expiring_soon items to shopping list
-  useEffect(() => {
-    const autoItems = inventory.filter(
-      (i) => i.status === "expired" || i.status === "expiring_soon"
-    );
-    if (autoItems.length === 0) return;
-    const currentList = getShoppingList(userId);
-    const toAdd = autoItems.filter(
-      (item) => !currentList.some((s) => s.fromInventoryId === item.id)
-    );
-    if (toAdd.length === 0) return;
-    const newEntries: ShoppingListItem[] = toAdd.map((item) => ({
-      id: item.id,
-      name: item.name,
-      category: item.category,
-      quantity: item.quantity,
-      quantity_unit: item.quantity_unit,
-      checked: false,
-      addedAt: new Date().toISOString(),
-      fromInventoryId: item.id,
-    }));
-    const updatedList = [...currentList, ...newEntries];
-    saveShoppingList(userId, updatedList);
-    setShoppingList(updatedList);
-    showToast("Kuch items shopping list mein add ho gaye 🛒", "success");
-  }, [inventory, userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Custom Categories ──
   const { customCategories, addCategory, deleteCategory } = useCategories(userId);
