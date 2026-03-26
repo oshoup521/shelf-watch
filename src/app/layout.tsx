@@ -37,7 +37,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-gray-50">
+      <body className="min-h-full flex flex-col" style={{ background: '#0f1117' }}>
+        {/* Splash screen — visible until JS hydrates and hides it */}
+        <div id="splash">
+          <div id="splash-logo">🛒</div>
+          <div id="splash-title">Shelf Watch</div>
+          <div id="splash-sub">Saaman track ho raha hai...</div>
+          <div id="splash-dots">
+            <span /><span /><span />
+          </div>
+        </div>
         <ToastProvider />
         {children}
       </body>

@@ -9,37 +9,44 @@ interface Props {
   onDelete: (id: string) => void;
 }
 
-const statusStyles = {
-  good: "bg-green-100 text-green-700",
-  expiring_soon: "bg-amber-100 text-amber-700",
-  expired: "bg-red-100 text-red-700",
+const statusBar = {
+  good: "sw-card-bar--green",
+  expiring_soon: "sw-card-bar--amber",
+  expired: "sw-card-bar--red",
+};
+
+const statusBadge = {
+  good: "sw-badge--green",
+  expiring_soon: "sw-badge--amber",
+  expired: "sw-badge--red",
 };
 
 const statusLabels = {
-  good: "Good",
-  expiring_soon: "Jald Expire",
-  expired: "Expire Ho Gaya",
+  good: "✓ Theek",
+  expiring_soon: "⏰ Jald",
+  expired: "💀 Expired",
 };
 
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr + "T00:00:00");
-  return date.toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
+const categoryEmoji: Record<string, string> = {
+  Dairy: "🥛", Vegetables: "🥦", Fruits: "🍎", Meat: "🍖",
+  Beverages: "🥤", Snacks: "🍿", Grains: "🌾", Condiments: "🫙",
+  Frozen: "🧊", General: "📦",
+};
 
-function daysRemaining(dateStr: string): string {
+function daysRemaining(dateStr: string): { text: string; urgent: boolean } {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const expiry = new Date(dateStr + "T00:00:00");
-  const diff = Math.round(
-    (expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-  );
-  if (diff === 0) return "Aaj expire ho raha hai";
-  if (diff > 0) return `${diff} din baaki`;
-  return `${Math.abs(diff)} din pehle expire hua`;
+  const diff = Math.round((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  if (diff === 0) return { text: "Aaj expire!", urgent: true };
+  if (diff > 0) return { text: `${diff} din baaki`, urgent: diff <= 3 };
+  return { text: `${Math.abs(diff)} din pehle`, urgent: false };
+}
+
+function formatDate(dateStr: string): string {
+  return new Date(dateStr + "T00:00:00").toLocaleDateString("en-IN", {
+    day: "2-digit", month: "short", year: "numeric",
+  });
 }
 
 export default function ItemCard({ item, onDelete }: Props) {
@@ -47,7 +54,6 @@ export default function ItemCard({ item, onDelete }: Props) {
   const [deleting, setDeleting] = useState(false);
   const startX = useRef<number | null>(null);
   const isDragging = useRef(false);
-
   const SWIPE_THRESHOLD = 80;
 
   function onTouchStart(e: React.TouchEvent) {
@@ -65,105 +71,80 @@ export default function ItemCard({ item, onDelete }: Props) {
   }
 
   function onTouchEnd() {
-    if (swipeX < -SWIPE_THRESHOLD / 2) {
-      setSwipeX(-SWIPE_THRESHOLD);
-    } else {
-      setSwipeX(0);
-    }
+    if (swipeX < -SWIPE_THRESHOLD / 2) setSwipeX(-SWIPE_THRESHOLD);
+    else setSwipeX(0);
     startX.current = null;
-  }
-
-  function resetSwipe() {
-    setSwipeX(0);
   }
 
   async function handleDelete() {
     const confirmed = window.confirm(`"${item.name}" delete karna chahte ho?`);
-    if (!confirmed) {
-      resetSwipe();
-      return;
-    }
+    if (!confirmed) { setSwipeX(0); return; }
     setDeleting(true);
-    const { error } = await supabase
-      .from("inventory")
-      .delete()
-      .eq("id", item.id);
+    const { error } = await supabase.from("inventory").delete().eq("id", item.id);
     if (error) {
       showToast("Delete nahi hua, dobara try karo", "error");
       setDeleting(false);
-      resetSwipe();
+      setSwipeX(0);
     } else {
       showToast(`"${item.name}" delete ho gaya`, "success");
       onDelete(item.id);
     }
   }
 
+  const days = daysRemaining(item.expiry_date);
+  const emoji = categoryEmoji[item.category] ?? "📦";
+
   return (
-    <div className="relative overflow-hidden rounded-2xl">
-      {/* Delete background */}
-      <div className="absolute inset-0 bg-red-500 flex items-center justify-end pr-5 rounded-2xl">
-        <span className="text-white text-sm font-semibold">Delete</span>
+    <div className="sw-card-wrap">
+      {/* Delete bg */}
+      <div className="sw-card-delete-bg">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+        </svg>
       </div>
 
-      {/* Card content */}
+      {/* Card */}
       <div
-        className="relative bg-white rounded-2xl p-4 shadow-sm flex items-center justify-between transition-transform"
+        className="sw-card"
         style={{ transform: `translateX(${swipeX}px)`, touchAction: "pan-y" }}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
-        onClick={() => {
-          if (!isDragging.current && swipeX < 0) {
-            resetSwipe();
-          }
-        }}
+        onClick={() => { if (!isDragging.current && swipeX < 0) setSwipeX(0); }}
       >
-        {/* Thumbnail */}
-        {item.image_url && (
-          <img
-            src={item.image_url}
-            alt={item.name}
-            className="w-12 h-12 rounded-xl object-cover mr-3 shrink-0"
-          />
-        )}
+        {/* Left color bar */}
+        <div className={`sw-card-bar ${statusBar[item.status]}`} />
 
-        {/* Left: info */}
-        <div className="flex-1 min-w-0 pr-3">
-          <p className="font-semibold text-gray-900 truncate">{item.name}</p>
-          <p className="text-xs text-gray-400 mt-0.5">{item.category}</p>
-          <p className="text-xs text-gray-500 mt-1">{daysRemaining(item.expiry_date)}</p>
+        {/* Image or emoji */}
+        <div className="sw-card-thumb">
+          {item.image_url ? (
+            <img src={item.image_url} alt={item.name} className="sw-card-img" />
+          ) : (
+            <span className="sw-card-emoji">{emoji}</span>
+          )}
         </div>
 
-        {/* Right: badges + date */}
-        <div className="flex flex-col items-end gap-1.5 shrink-0">
-          <span className="text-xs text-gray-500">{formatDate(item.expiry_date)}</span>
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs bg-gray-100 text-gray-600 rounded-full px-2 py-0.5">
-              ×{item.quantity}
-            </span>
-            <span
-              className={`text-xs rounded-full px-2 py-0.5 font-medium ${statusStyles[item.status]}`}
-            >
-              {statusLabels[item.status]}
-            </span>
-          </div>
+        {/* Info */}
+        <div className="sw-card-info">
+          <p className="sw-card-name">{item.name}</p>
+          <p className="sw-card-meta">{item.category} · ×{item.quantity}</p>
+          <p className={`sw-card-days ${days.urgent ? "sw-card-days--urgent" : ""}`}>{days.text}</p>
+        </div>
+
+        {/* Right */}
+        <div className="sw-card-right">
+          <span className={`sw-badge ${statusBadge[item.status]}`}>{statusLabels[item.status]}</span>
+          <span className="sw-card-date">{formatDate(item.expiry_date)}</span>
         </div>
       </div>
 
-      {/* Swipe delete button overlay */}
+      {/* Swipe delete btn */}
       {swipeX <= -SWIPE_THRESHOLD / 2 && (
-        <button
-          className="absolute right-0 top-0 bottom-0 w-20 bg-red-500 rounded-r-2xl flex items-center justify-center"
-          onClick={handleDelete}
-          disabled={deleting}
-        >
-          {deleting ? (
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          ) : (
-            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          )}
+        <button className="sw-card-delete-btn" onClick={handleDelete} disabled={deleting}>
+          {deleting
+            ? <div className="sw-spin" />
+            : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+          }
         </button>
       )}
     </div>
