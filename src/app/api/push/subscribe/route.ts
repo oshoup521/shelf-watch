@@ -25,3 +25,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "server_error" }, { status: 500 });
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { userId } = await request.json();
+    if (!userId) {
+      return NextResponse.json({ error: "missing_fields" }, { status: 400 });
+    }
+    const supabase = await createClient();
+    const { error } = await supabase.from("push_subscriptions").delete().eq("user_id", userId);
+    if (error) {
+      console.error("[push/subscribe] Supabase delete error:", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ success: true });
+  } catch {
+    return NextResponse.json({ error: "server_error" }, { status: 500 });
+  }
+}

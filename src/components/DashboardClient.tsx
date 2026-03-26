@@ -5,8 +5,9 @@ import { supabase, InventoryItem } from "@/lib/supabase";
 import ItemCard from "@/components/ItemCard";
 import AddItemModal from "@/components/AddItemModal";
 import EditItemModal from "@/components/EditItemModal";
-import { subscribeToPush } from "@/lib/pushNotifications";
+import { subscribeToPush, getNotificationStatus, unsubscribeFromPush } from "@/lib/pushNotifications";
 import { showToast } from "@/lib/toastStore";
+import { useCategories } from "@/hooks/useCategories";
 
 type Filter = "all" | "expiring_soon" | "expired";
 
@@ -63,6 +64,27 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"expiry" | "name">("expiry");
   const [isOffline, setIsOffline] = useState(false);
+
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+
+  useEffect(() => {
+    getNotificationStatus().then(setNotificationsEnabled);
+  }, []);
+
+  // ── Custom Categories ──
+  const { customCategories, addCategory, deleteCategory } = useCategories(userId);
+  const [newCatName, setNewCatName] = useState("");
+  const [addingCat, setAddingCat] = useState(false);
+
+  async function handleAddCat() {
+    const trimmed = newCatName.trim();
+    if (!trimmed) return;
+    setAddingCat(true);
+    const ok = await addCategory(trimmed);
+    if (ok) showToast(`"${trimmed}" category add ho gayi! 🏷️`, "success");
+    if (ok) setNewCatName("");
+    setAddingCat(false);
+  }
 
   // ── Pull-to-Refresh ──
   const mobileRef = useRef<HTMLDivElement>(null);
@@ -270,11 +292,17 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
   const filterLabel = (f: Filter) =>
     f === "all" ? "Sab Items" : f === "expiring_soon" ? "⏰ Jald Expire" : "💀 Expired Items";
 
-  const enableNotifications = async () => {
+  const toggleNotifications = async () => {
     try {
-      const result = await subscribeToPush(userId);
-      if (result === "ok") { showToast("Notifications enable ho gayi! 🔔", "success"); setShowSettings(false); }
-      else showToast(result, "error");
+      if (notificationsEnabled) {
+        const result = await unsubscribeFromPush(userId);
+        if (result === "ok") { setNotificationsEnabled(false); showToast("Notifications disable ho gayi 🔕", "success"); }
+        else showToast(result, "error");
+      } else {
+        const result = await subscribeToPush(userId);
+        if (result === "ok") { setNotificationsEnabled(true); showToast("Notifications enable ho gayi! 🔔", "success"); }
+        else showToast(result, "error");
+      }
     } catch (err) { showToast(`Error: ${err instanceof Error ? err.message : String(err)}`, "error"); }
   };
 
@@ -442,9 +470,46 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
               <h2 className="sw-sheet-title">Settings</h2>
               <div className="sw-setting-item">
                 <div><p className="sw-setting-label">🔔 Push Notifications</p><p className="sw-setting-sub">Expire hone se pehle alert pao</p></div>
-                <button className="sw-setting-btn" onClick={enableNotifications}>Enable</button>
+                <label className="sw-notif-toggle" aria-label="Toggle push notifications">
+                  <input type="checkbox" checked={notificationsEnabled} onChange={toggleNotifications} />
+                  <span className="sw-notif-slider" />
+                </label>
               </div>
-              <div className="sw-setting-item">
+              <div style={{ borderTop: "1px solid var(--sw-border)", paddingTop: 16, marginTop: 8 }}>
+                <p className="sw-setting-label" style={{ marginBottom: 6 }}>🏷️ Custom Categories</p>
+                <p className="sw-setting-sub" style={{ marginBottom: 12 }}>Apni categories banao aur manage karo</p>
+                {customCategories.length === 0 ? (
+                  <p style={{ fontSize: 13, color: "var(--sw-muted)", marginBottom: 12 }}>Koi custom category nahi hai abhi</p>
+                ) : (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+                    {customCategories.map((cat) => (
+                      <span key={cat} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 10px", borderRadius: 20, background: "var(--sw-surface2)", fontSize: 13, color: "var(--sw-text)" }}>
+                        {cat}
+                        <button onClick={() => deleteCategory(cat)} style={{ background: "none", border: "none", color: "var(--sw-muted)", cursor: "pointer", fontSize: 11, lineHeight: 1, padding: 0 }} aria-label={`Delete ${cat}`}>✕</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input
+                    type="text"
+                    value={newCatName}
+                    onChange={(e) => setNewCatName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddCat(); } }}
+                    placeholder="Nayi category ka naam..."
+                    maxLength={30}
+                    style={{ flex: 1, height: 44, borderRadius: 12, border: "1px solid var(--sw-border)", background: "var(--sw-surface)", color: "var(--sw-text)", fontSize: 14, padding: "0 12px", outline: "none" }}
+                  />
+                  <button
+                    onClick={handleAddCat}
+                    disabled={!newCatName.trim() || addingCat}
+                    style={{ height: 44, padding: "0 16px", borderRadius: 12, background: "#16a34a", color: "#fff", fontSize: 14, fontWeight: 600, border: "none", cursor: "pointer", opacity: (!newCatName.trim() || addingCat) ? 0.4 : 1 }}
+                  >
+                    {addingCat ? "..." : "Add"}
+                  </button>
+                </div>
+              </div>
+              <div className="sw-setting-item" style={{ marginTop: 16 }}>
                 <div><p className="sw-setting-label">🚪 Sign Out</p><p className="sw-setting-sub">Account se bahar jao</p></div>
                 <button className="sw-setting-btn sw-setting-btn--danger" onClick={signOut}>Bahar Jao</button>
               </div>
@@ -533,7 +598,7 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
             {/* Account actions */}
             <div className="dsk-sidebar-card">
               <p className="dsk-sidebar-title">Account</p>
-              <button className="dsk-sidebar-action" onClick={enableNotifications}>🔔 Enable Notifications</button>
+              <button className="dsk-sidebar-action" onClick={toggleNotifications}>{notificationsEnabled ? "🔕 Disable Notifications" : "🔔 Enable Notifications"}</button>
               <button className="dsk-sidebar-action dsk-sidebar-action--danger" onClick={signOut}>🚪 Sign Out</button>
             </div>
           </aside>
@@ -599,9 +664,46 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
               <div className="dsk-dialog-body">
                 <div className="dsk-settings-item">
                   <div><p className="dsk-settings-label">🔔 Push Notifications</p><p className="dsk-settings-sub">Expire hone se pehle alert pao</p></div>
-                  <button className="dsk-settings-btn" onClick={enableNotifications}>Enable</button>
+                  <label className="sw-notif-toggle" aria-label="Toggle push notifications">
+                    <input type="checkbox" checked={notificationsEnabled} onChange={toggleNotifications} />
+                    <span className="sw-notif-slider" />
+                  </label>
                 </div>
-                <div className="dsk-settings-item">
+                <div style={{ borderTop: "1px solid var(--sw-border)", paddingTop: 16, marginTop: 8 }}>
+                  <p className="dsk-settings-label" style={{ marginBottom: 6 }}>🏷️ Custom Categories</p>
+                  <p className="dsk-settings-sub" style={{ marginBottom: 12 }}>Apni categories banao aur manage karo</p>
+                  {customCategories.length === 0 ? (
+                    <p style={{ fontSize: 13, color: "var(--sw-muted)", marginBottom: 12 }}>Koi custom category nahi hai abhi</p>
+                  ) : (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+                      {customCategories.map((cat) => (
+                        <span key={cat} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 10px", borderRadius: 20, background: "var(--sw-surface2)", fontSize: 13, color: "var(--sw-text)" }}>
+                          {cat}
+                          <button onClick={() => deleteCategory(cat)} style={{ background: "none", border: "none", color: "var(--sw-muted)", cursor: "pointer", fontSize: 11, lineHeight: 1, padding: 0 }} aria-label={`Delete ${cat}`}>✕</button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input
+                      type="text"
+                      value={newCatName}
+                      onChange={(e) => setNewCatName(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddCat(); } }}
+                      placeholder="Nayi category ka naam..."
+                      maxLength={30}
+                      style={{ flex: 1, height: 36, borderRadius: 8, border: "1px solid var(--sw-border)", background: "var(--sw-surface)", color: "var(--sw-text)", fontSize: 13, padding: "0 10px", outline: "none" }}
+                    />
+                    <button
+                      onClick={handleAddCat}
+                      disabled={!newCatName.trim() || addingCat}
+                      style={{ height: 36, padding: "0 14px", borderRadius: 8, background: "#16a34a", color: "#fff", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", opacity: (!newCatName.trim() || addingCat) ? 0.4 : 1 }}
+                    >
+                      {addingCat ? "..." : "Add"}
+                    </button>
+                  </div>
+                </div>
+                <div className="dsk-settings-item" style={{ marginTop: 16 }}>
                   <div><p className="dsk-settings-label">🚪 Sign Out</p><p className="dsk-settings-sub">Account se bahar jao</p></div>
                   <button className="dsk-settings-btn dsk-settings-btn--danger" onClick={signOut}>Sign Out</button>
                 </div>

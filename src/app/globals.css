@@ -244,6 +244,13 @@ a {
 .sw-setting-btn { flex-shrink: 0; height: 34px; padding: 0 16px; border-radius: 10px; background: var(--sw-accent2); color: white; font-size: 12px; font-weight: 600; transition: opacity 0.15s; }
 .sw-setting-btn:active { opacity: 0.8; }
 .sw-setting-btn--danger { background: #dc2626; }
+/* Notification toggle */
+.sw-notif-toggle { position: relative; display: inline-block; width: 46px; height: 26px; flex-shrink: 0; }
+.sw-notif-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+.sw-notif-slider { position: absolute; cursor: pointer; inset: 0; background: var(--sw-surface2); border-radius: 26px; transition: background 0.2s; }
+.sw-notif-slider::before { content: ""; position: absolute; height: 20px; width: 20px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: transform 0.2s; }
+.sw-notif-toggle input:checked + .sw-notif-slider { background: var(--sw-accent2); }
+.sw-notif-toggle input:checked + .sw-notif-slider::before { transform: translateX(20px); }
 
 /* Item Card */
 .sw-card-wrap { position: relative; overflow: hidden; border-radius: 18px; }
