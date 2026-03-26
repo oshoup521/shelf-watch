@@ -125,6 +125,46 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
     setEditingItem(null);
   }, []);
 
+  // ── Supabase Real-time Sync ──
+  const [realtimeConnected, setRealtimeConnected] = useState(false);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`inventory:${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "inventory", filter: `user_id=eq.${userId}` },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            const newItem = {
+              ...(payload.new as Omit<InventoryItem, "status">),
+              status: computeStatus((payload.new as InventoryItem).expiry_date),
+            } as InventoryItem;
+            setInventory((prev) =>
+              [...prev, newItem].sort(
+                (a, b) => new Date(a.expiry_date).getTime() - new Date(b.expiry_date).getTime()
+              )
+            );
+          } else if (payload.eventType === "UPDATE") {
+            const updatedItem = {
+              ...(payload.new as Omit<InventoryItem, "status">),
+              status: computeStatus((payload.new as InventoryItem).expiry_date),
+            } as InventoryItem;
+            setInventory((prev) => prev.map((i) => (i.id === updatedItem.id ? updatedItem : i)));
+          } else if (payload.eventType === "DELETE") {
+            setInventory((prev) => prev.filter((i) => i.id !== (payload.old as InventoryItem).id));
+          }
+        }
+      )
+      .subscribe((status) => {
+        setRealtimeConnected(status === "SUBSCRIBED");
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Pull-to-Refresh touch handler ──
   useEffect(() => {
     const el = mobileRef.current;
@@ -241,6 +281,9 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
             <div className="sw-logo">
               <span className="sw-logo-icon">🛒</span>
               <span className="sw-logo-text">ShelfWatch</span>
+              {realtimeConnected && (
+                <span title="Live sync active" style={{ width: 7, height: 7, borderRadius: "50%", background: "#22c55e", display: "inline-block", marginLeft: 6, boxShadow: "0 0 0 2px #22c55e40", animation: "sw-pulse 2s infinite" }} />
+              )}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
               <button className="sw-icon-btn" onClick={toggleTheme} aria-label="Toggle theme">
@@ -387,6 +430,9 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
             <div className="dsk-logo">
               <span className="dsk-logo-icon">🛒</span>
               <span className="dsk-logo-text">ShelfWatch</span>
+              {realtimeConnected && (
+                <span title="Live sync active" style={{ width: 7, height: 7, borderRadius: "50%", background: "#22c55e", display: "inline-block", marginLeft: 6, boxShadow: "0 0 0 2px #22c55e40", animation: "sw-pulse 2s infinite" }} />
+              )}
             </div>
             <button className="dsk-add-btn" onClick={() => setShowModal(true)}>
               <PlusIcon /> Add Item
