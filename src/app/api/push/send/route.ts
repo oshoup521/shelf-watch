@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import webpush from "web-push";
-import { createClient } from "@/lib/supabaseServer";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 webpush.setVapidDetails(
   `mailto:${process.env.VAPID_EMAIL}`,
@@ -25,7 +25,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const supabase = await createClient();
+  const supabase = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
 
   // Compute date range: today through 3 days from now
   const today = new Date();
@@ -36,11 +39,15 @@ export async function POST(request: NextRequest) {
   const todayStr = today.toISOString().split("T")[0];
   const laterStr = threeDaysLater.toISOString().split("T")[0];
 
+  console.log("[push/send] date range:", todayStr, "→", laterStr);
+
   const { data: expiringItems } = await supabase
     .from("inventory")
     .select("user_id, name")
     .gte("expiry_date", todayStr)
     .lte("expiry_date", laterStr);
+
+  console.log("[push/send] expiring items:", expiringItems);
 
   if (!expiringItems || expiringItems.length === 0) {
     return NextResponse.json({ sent: 0 });
@@ -75,6 +82,7 @@ export async function POST(request: NextRequest) {
         await webpush.sendNotification(sub.subscription, payload);
         sent++;
       } catch (err: unknown) {
+        console.error("[push/send] webpush error:", err);
         const statusCode = (err as { statusCode?: number })?.statusCode;
         if (statusCode === 410 || statusCode === 404) {
           toDelete.push(sub.id);

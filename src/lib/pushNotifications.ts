@@ -10,16 +10,14 @@ export function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
   return buffer;
 }
 
-export async function subscribeToPush(userId: string): Promise<void> {
+export async function subscribeToPush(userId: string): Promise<string> {
   if (!("PushManager" in window)) {
-    console.warn("Push notifications not supported");
-    return;
+    return "Push notifications is support nahi karta yeh browser";
   }
 
   const permission = await Notification.requestPermission();
   if (permission !== "granted") {
-    console.warn("Notification permission denied");
-    return;
+    return "Notification permission deny kar di";
   }
 
   const registration = await navigator.serviceWorker.register("/sw.js");
@@ -32,9 +30,16 @@ export async function subscribeToPush(userId: string): Promise<void> {
     ),
   });
 
-  await fetch("/api/push/subscribe", {
+  const res = await fetch("/api/push/subscribe", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ userId, subscription: subscription.toJSON() }),
   });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    return `Server error: ${body.error ?? res.status}`;
+  }
+
+  return "ok";
 }

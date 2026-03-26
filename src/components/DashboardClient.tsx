@@ -5,6 +5,7 @@ import { supabase, InventoryItem } from "@/lib/supabase";
 import ItemCard from "@/components/ItemCard";
 import AddItemModal from "@/components/AddItemModal";
 import { subscribeToPush } from "@/lib/pushNotifications";
+import { showToast } from "@/lib/toastStore";
 
 type Filter = "all" | "expiring_soon" | "expired";
 
@@ -127,7 +128,18 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
 
         {/* Enable notifications */}
         <button
-          onClick={() => subscribeToPush(userId)}
+          onClick={async () => {
+            try {
+              const result = await subscribeToPush(userId);
+              if (result === "ok") {
+                showToast("Notifications enable ho gayi! 🔔", "success");
+              } else {
+                showToast(result, "error");
+              }
+            } catch (err) {
+              showToast(`Error: ${err instanceof Error ? err.message : String(err)}`, "error");
+            }
+          }}
           className="w-full min-h-[44px] text-xs text-gray-400 active:text-green-600 transition-colors"
         >
           🔔 Notifications enable karo
