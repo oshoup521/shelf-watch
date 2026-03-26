@@ -10,6 +10,8 @@ const CATEGORIES = [
   "Beverages", "Snacks", "Grains", "Condiments", "Frozen", "General",
 ];
 
+const QUANTITY_UNITS = ["pcs", "kg", "g", "L", "ml", "dozen"];
+
 interface Props {
   item: InventoryItem;
   userId: string;
@@ -31,6 +33,7 @@ export default function EditItemModal({ item, userId, onClose, onSuccess }: Prop
   const [name, setName] = useState(item.name);
   const [category, setCategory] = useState(item.category);
   const [quantity, setQuantity] = useState(item.quantity);
+  const [quantityUnit, setQuantityUnit] = useState(item.quantity_unit ?? "pcs");
   const [expiryDate, setExpiryDate] = useState(item.expiry_date);
   const [submitting, setSubmitting] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -76,6 +79,7 @@ export default function EditItemModal({ item, userId, onClose, onSuccess }: Prop
       name: name.trim(),
       category,
       quantity,
+      quantity_unit: quantityUnit,
       expiry_date: expiryDate,
       image_url: image_url ?? null,
     };
@@ -94,6 +98,7 @@ export default function EditItemModal({ item, userId, onClose, onSuccess }: Prop
       name: updates.name,
       category: updates.category,
       quantity: updates.quantity,
+      quantity_unit: updates.quantity_unit,
       expiry_date: updates.expiry_date,
       image_url: image_url,
       status: computeStatus(expiryDate),
@@ -176,15 +181,27 @@ export default function EditItemModal({ item, userId, onClose, onSuccess }: Prop
             <label className="block text-xs font-medium text-gray-500 mb-1.5">
               Quantity
             </label>
-            <input
-              type="number"
-              value={quantity}
-              onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-              min={1}
-              className={inputClass}
-              style={inputStyle}
-              inputMode="numeric"
-            />
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={quantity}
+                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                min={1}
+                className="flex-1 h-[52px] border border-gray-200 rounded-xl px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+                style={inputStyle}
+                inputMode="numeric"
+              />
+              <select
+                value={quantityUnit}
+                onChange={(e) => setQuantityUnit(e.target.value)}
+                className="w-[80px] h-[52px] border border-gray-200 rounded-xl px-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+                style={inputStyle}
+              >
+                {QUANTITY_UNITS.map((u) => (
+                  <option key={u} value={u}>{u}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div>

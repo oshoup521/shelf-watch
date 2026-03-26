@@ -141,7 +141,7 @@ export default function ItemCard({ item, onDelete, onEdit }: Props) {
         {/* Info */}
         <div className="sw-card-info">
           <p className="sw-card-name">{item.name}</p>
-          <p className="sw-card-meta">{item.category} · ×{item.quantity}</p>
+          <p className="sw-card-meta">{item.category} · {item.quantity} {item.quantity_unit ?? "pcs"}</p>
           <p className={`sw-card-days ${days.urgent ? "sw-card-days--urgent" : ""}`}>{days.text}</p>
         </div>
 

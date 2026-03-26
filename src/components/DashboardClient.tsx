@@ -60,6 +60,8 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
   const [showSettings, setShowSettings] = useState(false);
   const [showAlertSheet, setShowAlertSheet] = useState<"expired" | "expiring_soon" | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"expiry" | "name">("expiry");
 
   // ── Pull-to-Refresh ──
   const mobileRef = useRef<HTMLDivElement>(null);
@@ -165,7 +167,16 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
     };
   }, [refresh]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const filtered = inventory.filter((item) => filter === "all" || item.status === filter);
+  const filtered = inventory
+    .filter((item) =>
+      (filter === "all" || item.status === filter) &&
+      (searchQuery.trim() === "" || item.name.toLowerCase().includes(searchQuery.trim().toLowerCase()))
+    )
+    .sort((a, b) =>
+      sortBy === "name"
+        ? a.name.localeCompare(b.name)
+        : new Date(a.expiry_date).getTime() - new Date(b.expiry_date).getTime()
+    );
   const total = inventory.length;
   const expiringSoon = expiringSoonItems.length;
   const expired = expiredItems.length;
@@ -275,6 +286,31 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
 
           <AlertBanner cls="sw-alert-card" />
 
+          {/* Search + Sort */}
+          <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
+            <div style={{ position: "relative", flex: 1 }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--sw-muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Naam se dhundo..."
+                style={{ width: "100%", height: "42px", paddingLeft: "34px", paddingRight: searchQuery ? "32px" : "12px", borderRadius: "12px", border: "1px solid var(--sw-border)", background: "var(--sw-surface)", color: "var(--sw-text)", fontSize: "14px", outline: "none", WebkitAppearance: "none" }}
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", width: 20, height: 20, borderRadius: "50%", background: "var(--sw-surface2)", border: "none", color: "var(--sw-muted)", fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+              )}
+            </div>
+            <button
+              onClick={() => setSortBy(s => s === "expiry" ? "name" : "expiry")}
+              style={{ height: "42px", padding: "0 12px", borderRadius: "12px", border: "1px solid var(--sw-border)", background: sortBy === "name" ? "var(--sw-accent2)" : "var(--sw-surface)", color: sortBy === "name" ? "#fff" : "var(--sw-text)", fontSize: "12px", fontWeight: 500, whiteSpace: "nowrap", cursor: "pointer" }}
+            >
+              {sortBy === "expiry" ? "⏱ Expiry" : "🔤 A-Z"}
+            </button>
+          </div>
+
           <div className="sw-filters">
             {(["all", "expiring_soon", "expired"] as Filter[]).map((f) => (
               <button key={f} onClick={() => setFilter(f)} className={`sw-chip ${filter === f ? "sw-chip--active" : ""}`}>
@@ -287,9 +323,9 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
             <div className="sw-skeleton-list">{[1,2,3].map((i) => <div key={i} className="sw-skeleton" />)}</div>
           ) : filtered.length === 0 ? (
             <div className="sw-empty">
-              <span className="sw-empty-icon">📦</span>
-              <p className="sw-empty-title">{filter === "all" ? "Abhi kuch nahi hai" : filter === "expiring_soon" ? "Sab safe hai!" : "Koi expire nahi hua!"}</p>
-              <p className="sw-empty-sub">{filter === "all" ? "+ dabao aur pehla saaman add karo" : "Bahut badhiya 🎉"}</p>
+              <span className="sw-empty-icon">{searchQuery.trim() ? "🔍" : "📦"}</span>
+              <p className="sw-empty-title">{searchQuery.trim() ? `"${searchQuery}" nahi mila` : filter === "all" ? "Abhi kuch nahi hai" : filter === "expiring_soon" ? "Sab safe hai!" : "Koi expire nahi hua!"}</p>
+              <p className="sw-empty-sub">{searchQuery.trim() ? "Alag naam se try karo" : filter === "all" ? "+ dabao aur pehla saaman add karo" : "Bahut badhiya 🎉"}</p>
             </div>
           ) : (
             <div className="sw-list">{filtered.map((item) => <ItemCard key={item.id} item={item} onDelete={handleDelete} onEdit={setEditingItem} />)}</div>
@@ -407,17 +443,42 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
             <AlertBanner cls="sw-alert-card" />
 
             <div className="dsk-main-header">
-              <h2 className="dsk-section-title">{filterLabel(filter)}</h2>
-              <span className="dsk-item-count">{filtered.length} item{filtered.length !== 1 ? "s" : ""}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <h2 className="dsk-section-title">{filterLabel(filter)}</h2>
+                <span className="dsk-item-count">{filtered.length} item{filtered.length !== 1 ? "s" : ""}</span>
+              </div>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <div style={{ position: "relative" }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--sw-muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                  </svg>
+                  <input
+                    type="search"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Naam se dhundo..."
+                    style={{ height: "36px", width: "200px", paddingLeft: "30px", paddingRight: searchQuery ? "28px" : "10px", borderRadius: "10px", border: "1px solid var(--sw-border)", background: "var(--sw-surface)", color: "var(--sw-text)", fontSize: "13px", outline: "none", WebkitAppearance: "none" }}
+                  />
+                  {searchQuery && (
+                    <button onClick={() => setSearchQuery("")} style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", width: 18, height: 18, borderRadius: "50%", background: "var(--sw-surface2)", border: "none", color: "var(--sw-muted)", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+                  )}
+                </div>
+                <button
+                  onClick={() => setSortBy(s => s === "expiry" ? "name" : "expiry")}
+                  style={{ height: "36px", padding: "0 12px", borderRadius: "10px", border: "1px solid var(--sw-border)", background: sortBy === "name" ? "var(--sw-accent2)" : "var(--sw-surface)", color: sortBy === "name" ? "#fff" : "var(--sw-text)", fontSize: "12px", fontWeight: 500, whiteSpace: "nowrap", cursor: "pointer" }}
+                >
+                  {sortBy === "expiry" ? "⏱ Expiry" : "🔤 A-Z"}
+                </button>
+              </div>
             </div>
 
             {loading ? (
               <div className="dsk-skeleton-grid">{[1,2,3,4].map((i) => <div key={i} className="dsk-skeleton" />)}</div>
             ) : filtered.length === 0 ? (
               <div className="dsk-empty">
-                <span className="dsk-empty-icon">📦</span>
-                <p className="dsk-empty-title">{filter === "all" ? "Abhi kuch nahi hai" : filter === "expiring_soon" ? "Sab safe hai!" : "Koi expire nahi hua!"}</p>
-                <p className="dsk-empty-sub">{filter === "all" ? '"Add Item" button se pehla item add karo' : "Bahut badhiya 🎉"}</p>
+                <span className="dsk-empty-icon">{searchQuery.trim() ? "🔍" : "📦"}</span>
+                <p className="dsk-empty-title">{searchQuery.trim() ? `"${searchQuery}" nahi mila` : filter === "all" ? "Abhi kuch nahi hai" : filter === "expiring_soon" ? "Sab safe hai!" : "Koi expire nahi hua!"}</p>
+                <p className="dsk-empty-sub">{searchQuery.trim() ? "Alag naam se try karo" : filter === "all" ? '"Add Item" button se pehla item add karo' : "Bahut badhiya 🎉"}</p>
               </div>
             ) : (
               <div className="dsk-grid">{filtered.map((item) => <ItemCard key={item.id} item={item} onDelete={handleDelete} onEdit={setEditingItem} />)}</div>
