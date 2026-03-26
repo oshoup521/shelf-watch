@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { supabase, InventoryItem } from "@/lib/supabase";
 import { showToast } from "@/lib/toastStore";
+import { getEmojiForCategory } from "@/lib/categories";
 
 interface Props {
   item: InventoryItem;
@@ -28,11 +29,7 @@ const statusLabels = {
   expired: "💀 Expired",
 };
 
-const categoryEmoji: Record<string, string> = {
-  Dairy: "🥛", Vegetables: "🥦", Fruits: "🍎", Meat: "🍖",
-  Beverages: "🥤", Snacks: "🍿", Grains: "🌾", Condiments: "🫙",
-  Frozen: "🧊", General: "📦",
-};
+
 
 function daysRemaining(dateStr: string): { text: string; urgent: boolean } {
   const today = new Date();
@@ -98,7 +95,7 @@ export default function ItemCard({ item, onDelete, onEdit }: Props) {
   }
 
   const days = daysRemaining(item.expiry_date);
-  const emoji = categoryEmoji[item.category] ?? "📦";
+  const emoji = getEmojiForCategory(item.category);
 
   return (
     <div className="sw-card-wrap">

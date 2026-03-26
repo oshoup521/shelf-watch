@@ -1,5 +1,12 @@
 import { createBrowserClient } from "@supabase/ssr";
 
+export type UserCategory = {
+  id: string;
+  user_id: string;
+  name: string;
+  created_at: string;
+};
+
 export type InventoryItem = {
   id: string;
   user_id: string;

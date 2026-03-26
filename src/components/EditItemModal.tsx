@@ -4,11 +4,7 @@ import { useRef, useState } from "react";
 import { supabase, InventoryItem } from "@/lib/supabase";
 import { showToast } from "@/lib/toastStore";
 import { compressImage } from "@/lib/imageUtils";
-
-const CATEGORIES = [
-  "Dairy", "Vegetables", "Fruits", "Meat",
-  "Beverages", "Snacks", "Grains", "Condiments", "Frozen", "General",
-];
+import CategorySelect from "@/components/CategorySelect";
 
 const QUANTITY_UNITS = ["pcs", "kg", "g", "L", "ml", "dozen"];
 
@@ -173,16 +169,13 @@ export default function EditItemModal({ item, userId, onClose, onSuccess }: Prop
             <label className="block text-xs font-medium mb-1.5" style={labelStyle}>
               Category
             </label>
-            <select
+            <CategorySelect
               value={category}
-              onChange={(e) => setCategory(e.target.value)}
+              onChange={setCategory}
+              userId={userId}
               className={inputClass}
               style={inputStyle}
-            >
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+            />
           </div>
 
           <div>
