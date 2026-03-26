@@ -9,6 +9,9 @@ interface Props {
   item: InventoryItem;
   onDelete: (id: string) => void;
   onEdit: (item: InventoryItem) => void;
+  selectionMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }
 
 const statusBar = {
@@ -47,7 +50,7 @@ function formatDate(dateStr: string): string {
   });
 }
 
-export default function ItemCard({ item, onDelete, onEdit }: Props) {
+export default function ItemCard({ item, onDelete, onEdit, selectionMode = false, selected = false, onToggleSelect }: Props) {
   const [swipeX, setSwipeX] = useState(0);
   const [deleting, setDeleting] = useState(false);
   const startX = useRef<number | null>(null);
@@ -116,13 +119,35 @@ export default function ItemCard({ item, onDelete, onEdit }: Props) {
 
       {/* Card */}
       <div
-        className="sw-card"
-        style={{ transform: `translateX(${swipeX}px)`, touchAction: "pan-y" }}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-        onClick={() => { if (!isDragging.current && swipeX < 0) setSwipeX(0); }}
+        className={`sw-card${selected ? " sw-card--selected" : ""}`}
+        style={{ transform: selectionMode ? "none" : `translateX(${swipeX}px)`, touchAction: selectionMode ? "auto" : "pan-y" }}
+        onTouchStart={selectionMode ? undefined : onTouchStart}
+        onTouchMove={selectionMode ? undefined : onTouchMove}
+        onTouchEnd={selectionMode ? undefined : onTouchEnd}
+        onClick={() => {
+          if (selectionMode) { onToggleSelect?.(item.id); return; }
+          if (!isDragging.current && swipeX < 0) setSwipeX(0);
+        }}
       >
+        {/* Selection checkbox */}
+        {selectionMode && (
+          <div style={{ display: "flex", alignItems: "center", paddingLeft: 12, paddingRight: 4, flexShrink: 0 }}>
+            <div style={{
+              width: 22, height: 22, borderRadius: 6,
+              border: `2px solid ${selected ? "#3b82f6" : "var(--sw-border)"}`,
+              background: selected ? "#3b82f6" : "transparent",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "all 0.15s",
+            }}>
+              {selected && (
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Left color bar */}
         <div className={`sw-card-bar ${statusBar[item.status]}`} />
 
@@ -149,6 +174,7 @@ export default function ItemCard({ item, onDelete, onEdit }: Props) {
         </div>
 
         {/* Desktop hover actions — hidden on touch devices */}
+        {!selectionMode && (
         <div className="sw-card-hover-actions">
           <button
             className="sw-card-hover-edit"
@@ -178,10 +204,11 @@ export default function ItemCard({ item, onDelete, onEdit }: Props) {
             )}
           </button>
         </div>
+        )}
       </div>
 
       {/* Swipe action buttons */}
-      {swipeX <= -SWIPE_THRESHOLD / 2 && (
+      {!selectionMode && swipeX <= -SWIPE_THRESHOLD / 2 && (
         <>
           <button className="sw-card-edit-btn" onClick={handleEdit}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

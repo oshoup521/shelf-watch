@@ -66,6 +66,9 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
   const [isOffline, setIsOffline] = useState(false);
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   useEffect(() => {
     getNotificationStatus().then(setNotificationsEnabled);
@@ -308,6 +311,101 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
 
   const signOut = async () => { await supabase.auth.signOut(); window.location.href = "/login"; };
 
+  // ── Selection helpers ──
+  const toggleSelectionMode = () => {
+    setSelectionMode((v) => { if (v) setSelectedIds(new Set()); return !v; });
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => setSelectedIds(new Set(filtered.map((i) => i.id)));
+  const deselectAll = () => setSelectedIds(new Set());
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    const confirmed = window.confirm(`${selectedIds.size} item${selectedIds.size > 1 ? "s" : ""} delete karna chahte ho?`);
+    if (!confirmed) return;
+    setBulkDeleting(true);
+    const ids = Array.from(selectedIds);
+    const { error } = await supabase.from("inventory").delete().in("id", ids);
+    if (error) {
+      showToast("Bulk delete nahi hua, dobara try karo", "error");
+    } else {
+      setInventory((prev) => prev.filter((item) => !selectedIds.has(item.id)));
+      showToast(`${ids.length} item delete ho gaye 🗑️`, "success");
+      setSelectedIds(new Set());
+      setSelectionMode(false);
+    }
+    setBulkDeleting(false);
+  };
+
+  // ── Export helpers ──
+  const exportCSV = () => {
+    const header = ["Name", "Category", "Quantity", "Unit", "Expiry Date", "Status"];
+    const rows = inventory.map((item) => [
+      `"${item.name.replace(/"/g, '""')}"`,
+      `"${item.category}"`,
+      item.quantity,
+      item.quantity_unit ?? "pcs",
+      item.expiry_date,
+      item.status === "good" ? "Theek Hai" : item.status === "expiring_soon" ? "Jald Expire" : "Expired",
+    ]);
+    const csv = [header.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `shelfwatch-inventory-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast("CSV download ho gaya! 📊", "success");
+  };
+
+  const exportPDF = () => {
+    const now = new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+    const rows = inventory.map((item) => `
+      <tr>
+        <td>${item.name}</td>
+        <td>${item.category}</td>
+        <td>${item.quantity} ${item.quantity_unit ?? "pcs"}</td>
+        <td>${item.expiry_date}</td>
+        <td class="${item.status}">${item.status === "good" ? "✓ Theek" : item.status === "expiring_soon" ? "⚠ Jald" : "✕ Expired"}</td>
+      </tr>`).join("");
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>ShelfWatch Inventory</title>
+    <style>
+      body { font-family: Arial, sans-serif; padding: 24px; color: #111; }
+      h1 { margin: 0 0 4px; font-size: 22px; }
+      p.sub { margin: 0 0 20px; color: #666; font-size: 13px; }
+      table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      th { background: #f3f4f6; padding: 8px 10px; text-align: left; border-bottom: 2px solid #e5e7eb; }
+      td { padding: 7px 10px; border-bottom: 1px solid #e5e7eb; }
+      tr:last-child td { border-bottom: none; }
+      .good { color: #16a34a; font-weight: 600; }
+      .expiring_soon { color: #d97706; font-weight: 600; }
+      .expired { color: #dc2626; font-weight: 600; }
+      @media print { body { padding: 0; } }
+    </style></head><body>
+    <h1>🛒 ShelfWatch Inventory</h1>
+    <p class="sub">Export date: ${now} &nbsp;|&nbsp; Total: ${inventory.length} items</p>
+    <table>
+      <thead><tr><th>Name</th><th>Category</th><th>Qty</th><th>Expiry</th><th>Status</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <script>window.onload=function(){window.print();window.onafterprint=function(){window.close();};};<\/script>
+    </body></html>`;
+
+    const win = window.open("", "_blank");
+    if (win) { win.document.write(html); win.document.close(); }
+    showToast("PDF window khul gaya — Print/Save karo 🖨️", "success");
+  };
+
   const alertSheetItems = showAlertSheet === "expired" ? expiredItems : expiringSoonItems;
   const alertSheetTitle = showAlertSheet === "expired"
     ? `🚨 ${expiredItems.length} item expire ho gaye`
@@ -442,7 +540,39 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
                 {f === "all" ? "Sab" : f === "expiring_soon" ? "⏰ Jald" : "💀 Expired"}
               </button>
             ))}
+            <button onClick={toggleSelectionMode} className={`sw-chip ${selectionMode ? "sw-chip--active" : ""}`} style={{ marginLeft: "auto" }}>
+              {selectionMode ? "✕ Cancel" : "☑ Select"}
+            </button>
           </div>
+
+          {/* Bulk action toolbar */}
+          {selectionMode && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0", flexWrap: "wrap" }}>
+              <span style={{ fontSize: 13, color: "var(--sw-muted)", flex: 1 }}>
+                {selectedIds.size === 0 ? "Koi select nahi" : `${selectedIds.size} select`}
+              </span>
+              <button onClick={selectedIds.size === filtered.length ? deselectAll : selectAll}
+                style={{ fontSize: 12, padding: "6px 12px", borderRadius: 10, border: "1px solid var(--sw-border)", background: "var(--sw-surface)", color: "var(--sw-text)", cursor: "pointer" }}>
+                {selectedIds.size === filtered.length ? "Deselect All" : "Select All"}
+              </button>
+              <button onClick={handleBulkDelete} disabled={selectedIds.size === 0 || bulkDeleting}
+                style={{ fontSize: 12, padding: "6px 12px", borderRadius: 10, border: "none", background: selectedIds.size > 0 ? "#dc2626" : "var(--sw-surface2)", color: selectedIds.size > 0 ? "#fff" : "var(--sw-muted)", cursor: selectedIds.size > 0 ? "pointer" : "default", fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+                {bulkDeleting ? <span className="sw-spin" style={{ width: 12, height: 12 }} /> : "🗑"} Delete ({selectedIds.size})
+              </button>
+            </div>
+          )}
+
+          {/* Export buttons */}
+          {!selectionMode && inventory.length > 0 && (
+            <div style={{ display: "flex", gap: 8, marginBottom: 4 }}>
+              <button onClick={exportCSV} style={{ flex: 1, height: 36, borderRadius: 10, border: "1px solid var(--sw-border)", background: "var(--sw-surface)", color: "var(--sw-text)", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                📊 CSV Export
+              </button>
+              <button onClick={exportPDF} style={{ flex: 1, height: 36, borderRadius: 10, border: "1px solid var(--sw-border)", background: "var(--sw-surface)", color: "var(--sw-text)", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                🖨️ PDF Export
+              </button>
+            </div>
+          )}
 
           {loading ? (
             <div className="sw-skeleton-list">{[1,2,3].map((i) => <div key={i} className="sw-skeleton" />)}</div>
@@ -453,11 +583,14 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
               <p className="sw-empty-sub">{searchQuery.trim() ? "Alag naam se try karo" : filter === "all" ? "+ dabao aur pehla saaman add karo" : "Bahut badhiya 🎉"}</p>
             </div>
           ) : (
-            <div className="sw-list">{filtered.map((item) => <ItemCard key={item.id} item={item} onDelete={handleDelete} onEdit={setEditingItem} />)}</div>
+            <div className="sw-list">{filtered.map((item) => (
+              <ItemCard key={item.id} item={item} onDelete={handleDelete} onEdit={setEditingItem}
+                selectionMode={selectionMode} selected={selectedIds.has(item.id)} onToggleSelect={toggleSelect} />
+            ))}</div>
           )}
 
           <div className="sw-fab-row">
-            <button onClick={() => setShowModal(true)} className="sw-fab" aria-label="Add item"><PlusIcon /></button>
+            {!selectionMode && <button onClick={() => setShowModal(true)} className="sw-fab" aria-label="Add item"><PlusIcon /></button>}
           </div>
         </div>
 
@@ -614,29 +747,62 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
                 <span className="dsk-item-count">{filtered.length} item{filtered.length !== 1 ? "s" : ""}</span>
               </div>
               <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                <div style={{ position: "relative" }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--sw-muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
-                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                  </svg>
-                  <input
-                    type="search"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Naam se dhundo..."
-                    style={{ height: "36px", width: "200px", paddingLeft: "30px", paddingRight: searchQuery ? "28px" : "10px", borderRadius: "10px", border: "1px solid var(--sw-border)", background: "var(--sw-surface)", color: "var(--sw-text)", fontSize: "13px", outline: "none", WebkitAppearance: "none" }}
-                  />
-                  {searchQuery && (
-                    <button onClick={() => setSearchQuery("")} style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", width: 18, height: 18, borderRadius: "50%", background: "var(--sw-surface2)", border: "none", color: "var(--sw-muted)", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
-                  )}
-                </div>
-                <button
-                  onClick={() => setSortBy(s => s === "expiry" ? "name" : "expiry")}
-                  style={{ height: "36px", padding: "0 12px", borderRadius: "10px", border: "1px solid var(--sw-border)", background: sortBy === "name" ? "var(--sw-accent2)" : "var(--sw-surface)", color: sortBy === "name" ? "#fff" : "var(--sw-text)", fontSize: "12px", fontWeight: 500, whiteSpace: "nowrap", cursor: "pointer" }}
-                >
-                  {sortBy === "expiry" ? "⏱ Expiry" : "🔤 A-Z"}
+                {!selectionMode && <>
+                  <button onClick={exportCSV} disabled={inventory.length === 0}
+                    style={{ height: 36, padding: "0 12px", borderRadius: 10, border: "1px solid var(--sw-border)", background: "var(--sw-surface)", color: "var(--sw-text)", fontSize: 12, fontWeight: 600, cursor: inventory.length > 0 ? "pointer" : "default", opacity: inventory.length > 0 ? 1 : 0.4, whiteSpace: "nowrap" }}>
+                    📊 CSV
+                  </button>
+                  <button onClick={exportPDF} disabled={inventory.length === 0}
+                    style={{ height: 36, padding: "0 12px", borderRadius: 10, border: "1px solid var(--sw-border)", background: "var(--sw-surface)", color: "var(--sw-text)", fontSize: 12, fontWeight: 600, cursor: inventory.length > 0 ? "pointer" : "default", opacity: inventory.length > 0 ? 1 : 0.4, whiteSpace: "nowrap" }}>
+                    🖨️ PDF
+                  </button>
+                </>}
+                <button onClick={toggleSelectionMode}
+                  style={{ height: 36, padding: "0 12px", borderRadius: 10, border: "1px solid var(--sw-border)", background: selectionMode ? "var(--sw-accent2)" : "var(--sw-surface)", color: selectionMode ? "#fff" : "var(--sw-text)", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+                  {selectionMode ? "✕ Cancel" : "☑ Select"}
                 </button>
+                {!selectionMode && <>
+                  <div style={{ position: "relative" }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--sw-muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
+                      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input
+                      type="search"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Naam se dhundo..."
+                      style={{ height: "36px", width: "200px", paddingLeft: "30px", paddingRight: searchQuery ? "28px" : "10px", borderRadius: "10px", border: "1px solid var(--sw-border)", background: "var(--sw-surface)", color: "var(--sw-text)", fontSize: "13px", outline: "none", WebkitAppearance: "none" }}
+                    />
+                    {searchQuery && (
+                      <button onClick={() => setSearchQuery("")} style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", width: 18, height: 18, borderRadius: "50%", background: "var(--sw-surface2)", border: "none", color: "var(--sw-muted)", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setSortBy(s => s === "expiry" ? "name" : "expiry")}
+                    style={{ height: "36px", padding: "0 12px", borderRadius: "10px", border: "1px solid var(--sw-border)", background: sortBy === "name" ? "var(--sw-accent2)" : "var(--sw-surface)", color: sortBy === "name" ? "#fff" : "var(--sw-text)", fontSize: "12px", fontWeight: 500, whiteSpace: "nowrap", cursor: "pointer" }}
+                  >
+                    {sortBy === "expiry" ? "⏱ Expiry" : "🔤 A-Z"}
+                  </button>
+                </>}
               </div>
             </div>
+
+            {/* Desktop bulk action toolbar */}
+            {selectionMode && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderBottom: "1px solid var(--sw-border)", marginBottom: 12 }}>
+                <span style={{ fontSize: 13, color: "var(--sw-muted)", flex: 1 }}>
+                  {selectedIds.size === 0 ? "Items pe click karo select karne ke liye" : `${selectedIds.size} select`}
+                </span>
+                <button onClick={selectedIds.size === filtered.length ? deselectAll : selectAll}
+                  style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8, border: "1px solid var(--sw-border)", background: "var(--sw-surface)", color: "var(--sw-text)", cursor: "pointer" }}>
+                  {selectedIds.size === filtered.length ? "Deselect All" : "Select All"}
+                </button>
+                <button onClick={handleBulkDelete} disabled={selectedIds.size === 0 || bulkDeleting}
+                  style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8, border: "none", background: selectedIds.size > 0 ? "#dc2626" : "var(--sw-surface2)", color: selectedIds.size > 0 ? "#fff" : "var(--sw-muted)", cursor: selectedIds.size > 0 ? "pointer" : "default", fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+                  {bulkDeleting ? <span className="sw-spin" style={{ width: 12, height: 12 }} /> : "🗑"} Delete ({selectedIds.size})
+                </button>
+              </div>
+            )}
 
             {loading ? (
               <div className="dsk-skeleton-grid">{[1,2,3,4].map((i) => <div key={i} className="dsk-skeleton" />)}</div>
@@ -647,7 +813,10 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
                 <p className="dsk-empty-sub">{searchQuery.trim() ? "Alag naam se try karo" : filter === "all" ? '"Add Item" button se pehla item add karo' : "Bahut badhiya 🎉"}</p>
               </div>
             ) : (
-              <div className="dsk-grid">{filtered.map((item) => <ItemCard key={item.id} item={item} onDelete={handleDelete} onEdit={setEditingItem} />)}</div>
+              <div className="dsk-grid">{filtered.map((item) => (
+                <ItemCard key={item.id} item={item} onDelete={handleDelete} onEdit={setEditingItem}
+                  selectionMode={selectionMode} selected={selectedIds.has(item.id)} onToggleSelect={toggleSelect} />
+              ))}</div>
             )}
           </main>
         </div>

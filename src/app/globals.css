@@ -258,6 +258,7 @@ a {
 .sw-card-edit-bg-hint { width: 72px; background: #2563eb; display: flex; align-items: center; justify-content: center; }
 .sw-card-delete-bg-hint { width: 72px; background: #dc2626; display: flex; align-items: center; justify-content: center; }
 .sw-card { position: relative; background: var(--sw-surface); border: 1px solid var(--sw-border); border-radius: 18px; display: flex; align-items: center; gap: 10px; padding: 12px 12px 12px 0; transition: transform 0.08s linear; overflow: hidden; }
+.sw-card--selected { border-color: #3b82f6 !important; background: color-mix(in srgb, #3b82f6 8%, var(--sw-surface)) !important; }
 .sw-card-bar { width: 4px; position: absolute; left: 0; top: 0; bottom: 0; border-radius: 18px 0 0 18px; }
 .sw-card-bar--green { background: #4ade80; }
 .sw-card-bar--amber { background: #fbbf24; }
