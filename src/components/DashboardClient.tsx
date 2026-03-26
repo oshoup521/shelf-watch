@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { supabase, InventoryItem } from "@/lib/supabase";
 import ItemCard from "@/components/ItemCard";
 import AddItemModal from "@/components/AddItemModal";
@@ -19,6 +19,21 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
   const [filter, setFilter] = useState<Filter>("all");
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // In-app alert on mount for expiring/expired items
+  useEffect(() => {
+    const expired = initialInventory.filter((i) => i.status === "expired");
+    const expiringSoon = initialInventory.filter((i) => i.status === "expiring_soon");
+
+    if (expired.length > 0) {
+      const names = expired.map((i) => i.name).join(", ");
+      showToast(`${expired.length} item expire ho gaye: ${names}`, "error");
+    }
+    if (expiringSoon.length > 0) {
+      const names = expiringSoon.map((i) => i.name).join(", ");
+      showToast(`${expiringSoon.length} item jald expire honge: ${names}`, "warning");
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function computeStatus(expiry_date: string): InventoryItem["status"] {
     const today = new Date();

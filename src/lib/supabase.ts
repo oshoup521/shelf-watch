@@ -7,6 +7,7 @@ export type InventoryItem = {
   category: string;
   quantity: number;
   expiry_date: string;
+  image_url?: string;
   status: "good" | "expiring_soon" | "expired";
   created_at: string;
 };

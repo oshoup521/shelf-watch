@@ -118,6 +118,15 @@ export default function ItemCard({ item, onDelete }: Props) {
           }
         }}
       >
+        {/* Thumbnail */}
+        {item.image_url && (
+          <img
+            src={item.image_url}
+            alt={item.name}
+            className="w-12 h-12 rounded-xl object-cover mr-3 shrink-0"
+          />
+        )}
+
         {/* Left: info */}
         <div className="flex-1 min-w-0 pr-3">
           <p className="font-semibold text-gray-900 truncate">{item.name}</p>
