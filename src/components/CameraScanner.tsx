@@ -96,11 +96,12 @@ export default function CameraScanner({ onScanSuccess, onSwitchToManual }: Props
 
       if (data.error) {
         if (data.error === "low_confidence") {
-          showToast("Item clearly nahi dikh raha, dobara try karo ya manually enter karo", "warning");
+          showToast("Item clearly nahi dikh raha, item ko achhe se frame mein rakh ke dobara try karo", "warning");
+          // Don't switch to manual — let user retry
         } else {
           showToast("Scan nahi hua, manually enter karo", "warning");
+          onSwitchToManual();
         }
-        onSwitchToManual();
       } else {
         onScanSuccess(data as ScanResult);
       }
