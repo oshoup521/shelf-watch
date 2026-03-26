@@ -247,7 +247,9 @@ a {
 
 /* Item Card */
 .sw-card-wrap { position: relative; overflow: hidden; border-radius: 18px; }
-.sw-card-delete-bg { position: absolute; inset: 0; background: #dc2626; display: flex; align-items: center; justify-content: flex-end; padding-right: 22px; border-radius: 18px; }
+.sw-card-actions-bg { position: absolute; inset: 0; display: flex; align-items: stretch; justify-content: flex-end; border-radius: 18px; overflow: hidden; }
+.sw-card-edit-bg-hint { width: 72px; background: #2563eb; display: flex; align-items: center; justify-content: center; }
+.sw-card-delete-bg-hint { width: 72px; background: #dc2626; display: flex; align-items: center; justify-content: center; }
 .sw-card { position: relative; background: var(--sw-surface); border: 1px solid var(--sw-border); border-radius: 18px; display: flex; align-items: center; gap: 10px; padding: 12px 12px 12px 0; transition: transform 0.08s linear; overflow: hidden; }
 .sw-card-bar { width: 4px; position: absolute; left: 0; top: 0; bottom: 0; border-radius: 18px 0 0 18px; }
 .sw-card-bar--green { background: #4ade80; }
@@ -263,7 +265,53 @@ a {
 .sw-card-days--urgent { color: #fb923c; }
 .sw-card-right { flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; margin-right: 4px; }
 .sw-card-date { font-size: 10px; color: var(--sw-muted); }
-.sw-card-delete-btn { position: absolute; right: 0; top: 0; bottom: 0; width: 72px; background: #dc2626; border-radius: 0 18px 18px 0; display: flex; align-items: center; justify-content: center; }
+.sw-card-edit-btn { position: absolute; right: 72px; top: 0; bottom: 0; width: 72px; background: #2563eb; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+.sw-card-edit-btn:active { background: #1d4ed8; }
+.sw-card-delete-btn { position: absolute; right: 0; top: 0; bottom: 0; width: 72px; background: #dc2626; border-radius: 0 18px 18px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+.sw-card-delete-btn:active { background: #b91c1c; }
+.sw-card-action-label { font-size: 10px; font-weight: 700; color: white; letter-spacing: 0.3px; }
+
+/* Desktop hover actions — only shown with real pointer (mouse) */
+.sw-card-hover-actions { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  .sw-card { position: relative; }
+  .sw-card-hover-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+  }
+  .sw-card:hover .sw-card-hover-actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  /* Hide the static right-side content on hover so buttons don't overlap */
+  .sw-card:hover .sw-card-right { opacity: 0; }
+  .sw-card-right { transition: opacity 0.15s ease; }
+  .sw-card-hover-edit,
+  .sw-card-hover-delete {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.12s ease;
+  }
+  .sw-card-hover-edit { background: rgba(37,99,235,0.12); color: #3b82f6; }
+  .sw-card-hover-edit:hover { background: rgba(37,99,235,0.22); }
+  .sw-card-hover-delete { background: rgba(220,38,38,0.1); color: #ef4444; }
+  .sw-card-hover-delete:hover { background: rgba(220,38,38,0.2); }
+}
 
 /* Badges */
 .sw-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px; letter-spacing: 0.2px; }

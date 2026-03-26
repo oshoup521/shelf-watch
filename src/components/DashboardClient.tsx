@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase, InventoryItem } from "@/lib/supabase";
 import ItemCard from "@/components/ItemCard";
 import AddItemModal from "@/components/AddItemModal";
+import EditItemModal from "@/components/EditItemModal";
 import { subscribeToPush } from "@/lib/pushNotifications";
 import { showToast } from "@/lib/toastStore";
 
@@ -53,6 +54,7 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
   const [inventory, setInventory] = useState<InventoryItem[]>(initialInventory);
   const [filter, setFilter] = useState<Filter>("all");
   const [showModal, setShowModal] = useState(false);
+  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [loading, setLoading] = useState(false);
   const [alertDismissed, setAlertDismissed] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -115,6 +117,11 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
     setShowModal(false);
     refresh();
   }, [refresh]);
+
+  const handleEditSuccess = useCallback((updated: InventoryItem) => {
+    setInventory((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
+    setEditingItem(null);
+  }, []);
 
   // ── Pull-to-Refresh touch handler ──
   useEffect(() => {
@@ -285,7 +292,7 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
               <p className="sw-empty-sub">{filter === "all" ? "+ dabao aur pehla saaman add karo" : "Bahut badhiya 🎉"}</p>
             </div>
           ) : (
-            <div className="sw-list">{filtered.map((item) => <ItemCard key={item.id} item={item} onDelete={handleDelete} />)}</div>
+            <div className="sw-list">{filtered.map((item) => <ItemCard key={item.id} item={item} onDelete={handleDelete} onEdit={setEditingItem} />)}</div>
           )}
 
           <div className="sw-fab-row">
@@ -324,7 +331,7 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
                   <ItemCard key={item.id} item={item} onDelete={(id) => {
                     handleDelete(id);
                     if (alertSheetItems.length - 1 === 0) setShowAlertSheet(null);
-                  }} />
+                  }} onEdit={setEditingItem} />
                 ))}
               </div>
               <button className="sw-alert-sheet-close" onClick={() => setShowAlertSheet(null)}>✕ Wapas Jao</button>
@@ -413,7 +420,7 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
                 <p className="dsk-empty-sub">{filter === "all" ? '"Add Item" button se pehla item add karo' : "Bahut badhiya 🎉"}</p>
               </div>
             ) : (
-              <div className="dsk-grid">{filtered.map((item) => <ItemCard key={item.id} item={item} onDelete={handleDelete} />)}</div>
+              <div className="dsk-grid">{filtered.map((item) => <ItemCard key={item.id} item={item} onDelete={handleDelete} onEdit={setEditingItem} />)}</div>
             )}
           </main>
         </div>
@@ -455,7 +462,7 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
                   <ItemCard key={item.id} item={item} onDelete={(id) => {
                     handleDelete(id);
                     if (alertSheetItems.length - 1 === 0) setShowAlertSheet(null);
-                  }} />
+                  }} onEdit={setEditingItem} />
                 ))}
               </div>
             </div>
@@ -466,6 +473,16 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
       {/* Add Item Modal (shared) */}
       {showModal && (
         <AddItemModal userId={userId} onClose={() => setShowModal(false)} onSuccess={handleModalSuccess} />
+      )}
+
+      {/* Edit Item Modal (shared) */}
+      {editingItem && (
+        <EditItemModal
+          item={editingItem}
+          userId={userId}
+          onClose={() => setEditingItem(null)}
+          onSuccess={handleEditSuccess}
+        />
       )}
     </>
   );
