@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import CameraScanner from "@/components/CameraScanner";
+import BarcodeScanner from "@/components/BarcodeScanner";
 import ManualEntryForm from "@/components/ManualEntryForm";
 
-type Tab = "camera" | "manual";
+type Tab = "camera" | "barcode" | "manual";
 
 interface ScanResult {
   name: string;
@@ -91,7 +92,16 @@ export default function AddItemModal({ userId, onClose, onSuccess }: Props) {
               ? { background: "var(--sw-surface)", color: "var(--sw-text)", boxShadow: "0 1px 3px rgba(0,0,0,0.25)" }
               : { color: "var(--sw-muted)" }}
           >
-            📷 Camera Scan
+            📷 Camera
+          </button>
+          <button
+            onClick={() => setActiveTab("barcode")}
+            className="flex-1 min-h-[44px] text-sm font-medium rounded-lg transition-colors"
+            style={activeTab === "barcode"
+              ? { background: "var(--sw-surface)", color: "var(--sw-text)", boxShadow: "0 1px 3px rgba(0,0,0,0.25)" }
+              : { color: "var(--sw-muted)" }}
+          >
+            🔲 Barcode
           </button>
           <button
             onClick={() => setActiveTab("manual")}
@@ -100,17 +110,24 @@ export default function AddItemModal({ userId, onClose, onSuccess }: Props) {
               ? { background: "var(--sw-surface)", color: "var(--sw-text)", boxShadow: "0 1px 3px rgba(0,0,0,0.25)" }
               : { color: "var(--sw-muted)" }}
           >
-            ✏️ Manual Entry
+            ✏️ Manual
           </button>
         </div>
 
         {/* Content */}
-        {activeTab === "camera" ? (
+        {activeTab === "camera" && (
           <CameraScanner
             onScanSuccess={handleScanSuccess}
             onSwitchToManual={() => setActiveTab("manual")}
           />
-        ) : (
+        )}
+        {activeTab === "barcode" && (
+          <BarcodeScanner
+            onScanSuccess={handleScanSuccess}
+            onSwitchToManual={() => setActiveTab("manual")}
+          />
+        )}
+        {activeTab === "manual" && (
           <ManualEntryForm
             prefill={prefill}
             userId={userId}
