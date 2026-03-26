@@ -109,14 +109,20 @@ export default function ManualEntryForm({ prefill, userId, onSuccess }: Props) {
    * font-size: 16px on all inputs — iOS Safari zooms in on focus
    * if the input font-size is smaller than 16px.
    */
-  const inputStyle: React.CSSProperties = { fontSize: "16px" };
+  const labelStyle: React.CSSProperties = { color: "var(--sw-muted)" };
+  const inputStyle: React.CSSProperties = {
+    fontSize: "16px",
+    background: "var(--sw-surface)",
+    color: "var(--sw-text)",
+    borderColor: "var(--sw-border)",
+  };
   const inputClass =
-    "w-full h-[52px] border border-gray-200 rounded-xl px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 bg-white";
+    "w-full h-[52px] border rounded-xl px-4 focus:outline-none focus:ring-2 focus:ring-green-500";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 px-4 pb-4">
       <div>
-        <label className="block text-xs font-medium text-gray-500 mb-1.5">
+        <label className="block text-xs font-medium mb-1.5" style={labelStyle}>
           Item ka naam *
         </label>
         <input
@@ -134,7 +140,7 @@ export default function ManualEntryForm({ prefill, userId, onSuccess }: Props) {
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-gray-500 mb-1.5">
+        <label className="block text-xs font-medium mb-1.5" style={labelStyle}>
           Category
         </label>
         <select
@@ -152,7 +158,7 @@ export default function ManualEntryForm({ prefill, userId, onSuccess }: Props) {
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-gray-500 mb-1.5">
+        <label className="block text-xs font-medium mb-1.5" style={labelStyle}>
           Quantity
         </label>
         <div className="flex gap-2">
@@ -163,14 +169,14 @@ export default function ManualEntryForm({ prefill, userId, onSuccess }: Props) {
               setQuantity(Math.max(1, parseInt(e.target.value) || 1))
             }
             min={1}
-            className="flex-1 h-[52px] border border-gray-200 rounded-xl px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+            className="flex-1 h-[52px] border rounded-xl px-4 focus:outline-none focus:ring-2 focus:ring-green-500"
             style={inputStyle}
             inputMode="numeric"
           />
           <select
             value={quantityUnit}
             onChange={(e) => setQuantityUnit(e.target.value)}
-            className="w-[80px] h-[52px] border border-gray-200 rounded-xl px-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+            className="w-[80px] h-[52px] border rounded-xl px-3 focus:outline-none focus:ring-2 focus:ring-green-500"
             style={inputStyle}
           >
             {QUANTITY_UNITS.map((u) => (
@@ -181,7 +187,7 @@ export default function ManualEntryForm({ prefill, userId, onSuccess }: Props) {
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-gray-500 mb-1.5">
+        <label className="block text-xs font-medium mb-1.5" style={labelStyle}>
           Expiry Date *
         </label>
         <input
@@ -196,7 +202,7 @@ export default function ManualEntryForm({ prefill, userId, onSuccess }: Props) {
 
       {/* Optional image picker */}
       <div>
-        <label className="block text-xs font-medium text-gray-500 mb-1.5">
+        <label className="block text-xs font-medium mb-1.5" style={labelStyle}>
           Photo (optional)
         </label>
         <input
@@ -225,7 +231,8 @@ export default function ManualEntryForm({ prefill, userId, onSuccess }: Props) {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="h-[52px] w-full border-2 border-dashed border-gray-200 rounded-xl text-gray-400 text-sm flex items-center justify-center gap-2 active:border-green-400 active:text-green-500 transition-colors"
+            className="h-[52px] w-full border-2 border-dashed rounded-xl text-sm flex items-center justify-center gap-2 active:border-green-400 active:text-green-500 transition-colors"
+            style={{ borderColor: "var(--sw-border)", color: "var(--sw-muted)" }}
           >
             📷 Photo add karo
           </button>
@@ -235,7 +242,7 @@ export default function ManualEntryForm({ prefill, userId, onSuccess }: Props) {
       <button
         type="submit"
         disabled={submitting || !name.trim() || !expiryDate}
-        className="w-full h-[56px] bg-green-600 active:bg-green-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-semibold rounded-2xl transition-colors flex items-center justify-center gap-2 text-base"
+        className="w-full h-[56px] bg-green-600 active:bg-green-700 disabled:bg-[var(--sw-surface2)] disabled:text-[var(--sw-muted)] text-white font-semibold rounded-2xl transition-colors flex items-center justify-center gap-2 text-base"
       >
         {submitting ? (
           <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />

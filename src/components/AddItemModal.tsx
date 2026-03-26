@@ -42,28 +42,29 @@ export default function AddItemModal({ userId, onClose, onSuccess }: Props) {
 
       {/* Bottom sheet — respects home indicator via padding-bottom */}
       <div
-        className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl overflow-y-auto animate-slide-up"
+        className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl overflow-y-auto animate-slide-up"
         style={{
+          background: "var(--sw-surface)",
           maxHeight: "calc(90dvh - env(safe-area-inset-top))",
           paddingBottom: "env(safe-area-inset-bottom)",
-          /* Prevent iOS rubber-band scroll leaking to page */
           overscrollBehavior: "contain",
         }}
       >
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 bg-gray-200 rounded-full" />
+          <div className="w-10 h-1 rounded-full" style={{ background: "var(--sw-surface2)" }} />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
-          <h2 className="text-base font-semibold text-gray-900">
+        <div className="flex items-center justify-between px-4 py-2 border-b" style={{ borderColor: "var(--sw-border)" }}>
+          <h2 className="text-base font-semibold" style={{ color: "var(--sw-text)" }}>
             Nayi Item Add Karo
           </h2>
           {/* 44×44 touch target for close */}
           <button
             onClick={onClose}
-            className="w-11 h-11 flex items-center justify-center text-gray-400 active:text-gray-700 rounded-full"
+            className="w-11 h-11 flex items-center justify-center rounded-full"
+            style={{ color: "var(--sw-muted)" }}
           >
             <svg
               className="w-5 h-5"
@@ -82,24 +83,22 @@ export default function AddItemModal({ userId, onClose, onSuccess }: Props) {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mx-4 my-3 bg-gray-100 rounded-xl p-1">
+        <div className="flex gap-1 mx-4 my-3 rounded-xl p-1" style={{ background: "var(--sw-surface2)" }}>
           <button
             onClick={() => setActiveTab("camera")}
-            className={`flex-1 min-h-[44px] text-sm font-medium rounded-lg transition-colors ${
-              activeTab === "camera"
-                ? "bg-white text-gray-900 shadow-sm"
-                : "text-gray-500"
-            }`}
+            className="flex-1 min-h-[44px] text-sm font-medium rounded-lg transition-colors"
+            style={activeTab === "camera"
+              ? { background: "var(--sw-surface)", color: "var(--sw-text)", boxShadow: "0 1px 3px rgba(0,0,0,0.25)" }
+              : { color: "var(--sw-muted)" }}
           >
             📷 Camera Scan
           </button>
           <button
             onClick={() => setActiveTab("manual")}
-            className={`flex-1 min-h-[44px] text-sm font-medium rounded-lg transition-colors ${
-              activeTab === "manual"
-                ? "bg-white text-gray-900 shadow-sm"
-                : "text-gray-500"
-            }`}
+            className="flex-1 min-h-[44px] text-sm font-medium rounded-lg transition-colors"
+            style={activeTab === "manual"
+              ? { background: "var(--sw-surface)", color: "var(--sw-text)", boxShadow: "0 1px 3px rgba(0,0,0,0.25)" }
+              : { color: "var(--sw-muted)" }}
           >
             ✏️ Manual Entry
           </button>
