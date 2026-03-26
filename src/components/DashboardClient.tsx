@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { supabase, InventoryItem } from "@/lib/supabase";
 import ItemCard from "@/components/ItemCard";
 import AddItemModal from "@/components/AddItemModal";
@@ -33,6 +33,22 @@ const ChevronRight = () => (
   </svg>
 );
 
+const SunIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="5"/>
+    <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+    <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+  </svg>
+);
+
+const MoonIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+  </svg>
+);
+
 export default function DashboardClient({ initialInventory, userId }: Props) {
   const [inventory, setInventory] = useState<InventoryItem[]>(initialInventory);
   const [filter, setFilter] = useState<Filter>("all");
@@ -41,6 +57,22 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
   const [alertDismissed, setAlertDismissed] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showAlertSheet, setShowAlertSheet] = useState<"expired" | "expiring_soon" | null>(null);
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("sw-theme") as "dark" | "light" | null;
+    const preferred = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    const initial = saved ?? preferred;
+    setTheme(initial);
+    document.documentElement.dataset.theme = initial;
+  }, []);
+
+  const toggleTheme = () => {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    localStorage.setItem("sw-theme", next);
+    document.documentElement.dataset.theme = next;
+  };
 
   const expiredItems = inventory.filter((i) => i.status === "expired");
   const expiringSoonItems = inventory.filter((i) => i.status === "expiring_soon");
@@ -142,6 +174,9 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
               <span className="sw-logo-icon">🛒</span>
               <span className="sw-logo-text">ShelfWatch</span>
             </div>
+            <button className="sw-icon-btn" onClick={toggleTheme} aria-label="Toggle theme">
+              {theme === "dark" ? <SunIcon /> : <MoonIcon />}
+            </button>
             <button className="sw-icon-btn" onClick={() => setShowSettings(true)} aria-label="Settings">
               <GearIcon />
             </button>
@@ -237,6 +272,9 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
             </div>
             <button className="dsk-add-btn" onClick={() => setShowModal(true)}>
               <PlusIcon /> Add Item
+            </button>
+            <button className="dsk-icon-btn" onClick={toggleTheme} title={theme === "dark" ? "Light mode" : "Dark mode"}>
+              {theme === "dark" ? <SunIcon /> : <MoonIcon />}
             </button>
             <button className="dsk-icon-btn" onClick={() => setShowSettings(true)} title="Settings">
               <GearIcon />

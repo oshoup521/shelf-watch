@@ -8,7 +8,7 @@
   --sal: env(safe-area-inset-left);
   --sar: env(safe-area-inset-right);
 
-  /* ShelfWatch design tokens */
+  /* ShelfWatch design tokens — dark (default) */
   --sw-bg: #0f1117;
   --sw-surface: #1a1d27;
   --sw-surface2: #22263a;
@@ -17,6 +17,22 @@
   --sw-muted: #8b90a8;
   --sw-accent: #4ade80;
   --sw-accent2: #16a34a;
+  --sw-header-bg: rgba(15, 17, 23, 0.88);
+  --sw-body-outer-bg: #050709;
+}
+
+/* ── Light theme overrides ─────────────────────── */
+[data-theme="light"] {
+  --sw-bg: #f4f6fb;
+  --sw-surface: #ffffff;
+  --sw-surface2: #eaecf4;
+  --sw-border: rgba(0, 0, 0, 0.08);
+  --sw-text: #0f1117;
+  --sw-muted: #64748b;
+  --sw-accent: #16a34a;
+  --sw-accent2: #15803d;
+  --sw-header-bg: rgba(244, 246, 251, 0.92);
+  --sw-body-outer-bg: #d8dce8;
 }
 
 @theme inline {
@@ -38,7 +54,7 @@ html {
 }
 
 body {
-  background: var(--background);
+  background: var(--sw-bg);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   /* Momentum scrolling on iOS */
@@ -152,7 +168,7 @@ a {
 .sw-bg { background: var(--sw-bg); color: var(--sw-text); font-family: var(--font-geist-sans), sans-serif; }
 
 /* Header */
-.sw-header { position: sticky; top: 0; z-index: 30; background: rgba(15,17,23,0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid var(--sw-border); width: 100%; }
+.sw-header { position: sticky; top: 0; z-index: 30; background: var(--sw-header-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid var(--sw-border); width: 100%; }
 .sw-header-inner { max-width: 480px; margin: 0 auto; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
 .sw-logo { display: flex; align-items: center; gap: 8px; }
 .sw-logo-icon { font-size: 22px; }
@@ -261,7 +277,7 @@ a {
 
 /* ── Desktop responsive ── */
 @media (min-width: 520px) {
-  body { background: #050709 !important; }
+  body { background: var(--sw-body-outer-bg) !important; }
   .sw-bg { max-width: 480px; margin: 0 auto; border-left: 1px solid var(--sw-border); border-right: 1px solid var(--sw-border); box-shadow: 0 0 60px rgba(0,0,0,0.6); }
   /* header is sticky inside sw-bg so it inherits the 480px width automatically */
   .sw-header-inner { padding-left: 16px; padding-right: 16px; }
@@ -282,7 +298,7 @@ a {
 .dsk-root { min-height: 100vh; background: var(--sw-bg); color: var(--sw-text); font-family: var(--font-geist-sans), sans-serif; }
 
 /* Header */
-.dsk-header { position: sticky; top: 0; z-index: 30; background: rgba(15,17,23,0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid var(--sw-border); }
+.dsk-header { position: sticky; top: 0; z-index: 30; background: var(--sw-header-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid var(--sw-border); }
 .dsk-header-inner { max-width: 1280px; margin: 0 auto; padding: 0 40px; height: 64px; display: flex; align-items: center; gap: 12px; }
 .dsk-logo { display: flex; align-items: center; gap: 10px; margin-right: auto; text-decoration: none; }
 .dsk-logo-icon { font-size: 26px; }
@@ -356,3 +372,38 @@ a {
 .dsk-settings-btn { flex-shrink: 0; height: 36px; padding: 0 18px; border-radius: 10px; background: var(--sw-accent2); color: white; font-size: 13px; font-weight: 600; transition: opacity 0.15s; }
 .dsk-settings-btn:hover { opacity: 0.85; }
 .dsk-settings-btn--danger { background: #dc2626; }
+
+/* ═══════════════════════════════════════════════════════
+   LIGHT THEME OVERRIDES
+═══════════════════════════════════════════════════════ */
+
+/* Logo gradient — darker for light bg */
+[data-theme="light"] .sw-logo-text,
+[data-theme="light"] .dsk-logo-text { background-image: linear-gradient(135deg, #16a34a, #0891b2); }
+
+/* Stat numbers — use accessible dark shades */
+[data-theme="light"] .sw-stat--blue .sw-stat-num  { color: #2563eb; }
+[data-theme="light"] .sw-stat--green .sw-stat-num { color: #16a34a; }
+[data-theme="light"] .sw-stat--amber .sw-stat-num { color: #d97706; }
+[data-theme="light"] .sw-stat--red .sw-stat-num   { color: #dc2626; }
+
+/* Desktop sidebar stat values */
+[data-theme="light"] .dsk-stat-val--blue  { color: #2563eb; }
+[data-theme="light"] .dsk-stat-val--green { color: #16a34a; }
+[data-theme="light"] .dsk-stat-val--amber { color: #d97706; }
+[data-theme="light"] .dsk-stat-val--red   { color: #dc2626; }
+
+/* Desktop nav active */
+[data-theme="light"] .dsk-nav-item--active { color: #16a34a; }
+[data-theme="light"] .dsk-nav-item--active .dsk-nav-count { color: #16a34a; background: rgba(22,163,74,0.12); }
+
+/* Badges */
+[data-theme="light"] .sw-badge--green { color: #15803d; }
+[data-theme="light"] .sw-badge--amber { color: #b45309; }
+[data-theme="light"] .sw-badge--red   { color: #dc2626; }
+
+/* Card expiry days label */
+[data-theme="light"] .sw-card-days { color: #2563eb; }
+
+/* Spinner border */
+[data-theme="light"] .sw-spin { border-color: rgba(0,0,0,0.15); border-top-color: var(--sw-text); }
