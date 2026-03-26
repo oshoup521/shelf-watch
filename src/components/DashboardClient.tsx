@@ -174,12 +174,14 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
               <span className="sw-logo-icon">🛒</span>
               <span className="sw-logo-text">ShelfWatch</span>
             </div>
-            <button className="sw-icon-btn" onClick={toggleTheme} aria-label="Toggle theme">
-              {theme === "dark" ? <SunIcon /> : <MoonIcon />}
-            </button>
-            <button className="sw-icon-btn" onClick={() => setShowSettings(true)} aria-label="Settings">
-              <GearIcon />
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <button className="sw-icon-btn" onClick={toggleTheme} aria-label="Toggle theme">
+                {theme === "dark" ? <SunIcon /> : <MoonIcon />}
+              </button>
+              <button className="sw-icon-btn" onClick={() => setShowSettings(true)} aria-label="Settings">
+                <GearIcon />
+              </button>
+            </div>
           </div>
         </header>
 
