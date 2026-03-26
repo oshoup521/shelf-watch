@@ -267,3 +267,92 @@ a {
   .sw-header-inner { padding-left: 16px; padding-right: 16px; }
   .sw-sheet { left: calc(50% - 240px); right: calc(50% - 240px); }
 }
+
+/* ── Responsive layout visibility ── */
+.mobile-only { display: block; }
+.desktop-only { display: none; }
+@media (min-width: 768px) {
+  .mobile-only { display: none !important; }
+  .desktop-only { display: block !important; }
+}
+
+/* ════════════════════════════════════════════════════
+   DESKTOP LAYOUT  (dsk-* classes)
+════════════════════════════════════════════════════ */
+.dsk-root { min-height: 100vh; background: var(--sw-bg); color: var(--sw-text); font-family: var(--font-geist-sans), sans-serif; }
+
+/* Header */
+.dsk-header { position: sticky; top: 0; z-index: 30; background: rgba(15,17,23,0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid var(--sw-border); }
+.dsk-header-inner { max-width: 1280px; margin: 0 auto; padding: 0 40px; height: 64px; display: flex; align-items: center; gap: 12px; }
+.dsk-logo { display: flex; align-items: center; gap: 10px; margin-right: auto; text-decoration: none; }
+.dsk-logo-icon { font-size: 26px; }
+.dsk-logo-text { font-size: 22px; font-weight: 800; background: linear-gradient(135deg, #4ade80, #22d3ee); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -0.5px; }
+.dsk-add-btn { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 20px; border-radius: 12px; background: linear-gradient(135deg, #4ade80, #16a34a); color: white; font-size: 14px; font-weight: 700; transition: opacity 0.15s, transform 0.1s; }
+.dsk-add-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+.dsk-icon-btn { width: 40px; height: 40px; border-radius: 12px; background: var(--sw-surface); border: 1px solid var(--sw-border); color: var(--sw-muted); display: flex; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s; }
+.dsk-icon-btn:hover { background: var(--sw-surface2); color: var(--sw-text); }
+
+/* Body grid */
+.dsk-body { max-width: 1280px; margin: 0 auto; padding: 32px 40px; display: grid; grid-template-columns: 260px 1fr; gap: 28px; align-items: start; }
+
+/* Sidebar */
+.dsk-sidebar { position: sticky; top: calc(64px + 24px); display: flex; flex-direction: column; gap: 14px; }
+.dsk-sidebar-card { background: var(--sw-surface); border: 1px solid var(--sw-border); border-radius: 20px; padding: 20px; }
+.dsk-sidebar-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--sw-muted); margin-bottom: 16px; }
+
+/* Sidebar stats */
+.dsk-stat-list { display: flex; flex-direction: column; gap: 12px; }
+.dsk-stat-item { display: flex; align-items: center; justify-content: space-between; }
+.dsk-stat-name { font-size: 13px; color: var(--sw-muted); }
+.dsk-stat-val { font-size: 26px; font-weight: 800; line-height: 1; }
+.dsk-stat-val--blue { color: #60a5fa; }
+.dsk-stat-val--green { color: #4ade80; }
+.dsk-stat-val--amber { color: #fbbf24; }
+.dsk-stat-val--red { color: #f87171; }
+
+/* Sidebar nav */
+.dsk-nav { display: flex; flex-direction: column; gap: 3px; }
+.dsk-nav-item { display: flex; align-items: center; gap: 10px; height: 42px; padding: 0 12px; border-radius: 12px; font-size: 14px; font-weight: 500; color: var(--sw-muted); transition: background 0.15s, color 0.15s; width: 100%; text-align: left; }
+.dsk-nav-item:hover { background: var(--sw-surface2); color: var(--sw-text); }
+.dsk-nav-item--active { background: rgba(74,222,128,0.12); color: #4ade80; font-weight: 700; }
+.dsk-nav-count { margin-left: auto; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--sw-surface2); color: var(--sw-muted); }
+.dsk-nav-item--active .dsk-nav-count { background: rgba(74,222,128,0.15); color: #4ade80; }
+
+/* Sidebar actions */
+.dsk-sidebar-action { display: flex; align-items: center; gap: 10px; height: 42px; padding: 0 12px; border-radius: 12px; font-size: 14px; font-weight: 500; color: var(--sw-muted); transition: background 0.15s, color 0.15s; width: 100%; text-align: left; }
+.dsk-sidebar-action:hover { background: var(--sw-surface2); color: var(--sw-text); }
+.dsk-sidebar-action--danger:hover { background: rgba(239,68,68,0.1); color: #f87171; }
+
+/* Main area */
+.dsk-main { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.dsk-main-header { display: flex; align-items: center; justify-content: space-between; padding: 0 2px; }
+.dsk-section-title { font-size: 20px; font-weight: 800; color: var(--sw-text); }
+.dsk-item-count { font-size: 13px; color: var(--sw-muted); }
+
+/* Item grid */
+.dsk-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.dsk-skeleton-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.dsk-skeleton { height: 80px; background: var(--sw-surface); border-radius: 18px; animation: sw-pulse 1.4s ease infinite; }
+
+/* Empty state */
+.dsk-empty { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 0; gap: 10px; text-align: center; }
+.dsk-empty-icon { font-size: 56px; }
+.dsk-empty-title { font-size: 18px; font-weight: 700; color: var(--sw-text); }
+.dsk-empty-sub { font-size: 14px; color: var(--sw-muted); }
+
+/* Desktop dialogs (centered modal instead of bottom sheet) */
+.dsk-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 40; backdrop-filter: blur(4px); }
+.dsk-dialog { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 50; background: var(--sw-surface); border: 1px solid var(--sw-border); border-radius: 24px; width: 520px; max-width: 90vw; max-height: 80vh; overflow: hidden; display: flex; flex-direction: column; animation: dsk-pop 0.2s cubic-bezier(0.34, 1.4, 0.64, 1); box-shadow: 0 24px 80px rgba(0,0,0,0.6); }
+@keyframes dsk-pop { from { opacity:0; transform:translate(-50%,-46%) scale(0.95); } to { opacity:1; transform:translate(-50%,-50%) scale(1); } }
+.dsk-dialog-header { display: flex; align-items: center; justify-content: space-between; padding: 22px 24px 18px; border-bottom: 1px solid var(--sw-border); flex-shrink: 0; }
+.dsk-dialog-title { font-size: 17px; font-weight: 700; color: var(--sw-text); }
+.dsk-dialog-close { width: 32px; height: 32px; border-radius: 10px; background: var(--sw-surface2); border: 1px solid var(--sw-border); color: var(--sw-muted); display: flex; align-items: center; justify-content: center; font-size: 14px; transition: background 0.15s, color 0.15s; }
+.dsk-dialog-close:hover { background: var(--sw-border); color: var(--sw-text); }
+.dsk-dialog-body { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 12px; }
+.dsk-settings-item { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid var(--sw-border); gap: 16px; }
+.dsk-settings-item:last-child { border-bottom: none; padding-bottom: 0; }
+.dsk-settings-label { font-size: 15px; font-weight: 600; color: var(--sw-text); }
+.dsk-settings-sub { font-size: 12px; color: var(--sw-muted); margin-top: 3px; }
+.dsk-settings-btn { flex-shrink: 0; height: 36px; padding: 0 18px; border-radius: 10px; background: var(--sw-accent2); color: white; font-size: 13px; font-weight: 600; transition: opacity 0.15s; }
+.dsk-settings-btn:hover { opacity: 0.85; }
+.dsk-settings-btn--danger { background: #dc2626; }
