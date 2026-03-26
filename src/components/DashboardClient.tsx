@@ -178,7 +178,8 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "inventory", filter: `user_id=eq.${userId}` },
-        (payload) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (payload: any) => {
           if (payload.eventType === "INSERT") {
             const newItem = {
               ...(payload.new as Omit<InventoryItem, "status">),
