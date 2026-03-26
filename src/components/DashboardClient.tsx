@@ -5,9 +5,11 @@ import { supabase, InventoryItem } from "@/lib/supabase";
 import ItemCard from "@/components/ItemCard";
 import AddItemModal from "@/components/AddItemModal";
 import EditItemModal from "@/components/EditItemModal";
+import ShoppingList from "@/components/ShoppingList";
 import { subscribeToPush, getNotificationStatus, unsubscribeFromPush } from "@/lib/pushNotifications";
 import { showToast } from "@/lib/toastStore";
 import { useCategories } from "@/hooks/useCategories";
+import { ShoppingListItem, getShoppingList, saveShoppingList } from "@/lib/shoppingListStore";
 
 type Filter = "all" | "expiring_soon" | "expired";
 
@@ -51,6 +53,13 @@ const MoonIcon = () => (
   </svg>
 );
 
+const ShoppingCartIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+  </svg>
+);
+
 export default function DashboardClient({ initialInventory, userId }: Props) {
   const [inventory, setInventory] = useState<InventoryItem[]>(initialInventory);
   const [filter, setFilter] = useState<Filter>("all");
@@ -70,9 +79,46 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
 
+  // ── Shopping List ──
+  const [showShoppingList, setShowShoppingList] = useState(false);
+  const [shoppingList, setShoppingList] = useState<ShoppingListItem[]>([]);
+  const [shoppingBannerDismissed, setShoppingBannerDismissed] = useState(false);
+
   useEffect(() => {
     getNotificationStatus().then(setNotificationsEnabled);
   }, []);
+
+  // Load shopping list from localStorage on mount
+  useEffect(() => {
+    setShoppingList(getShoppingList(userId));
+  }, [userId]);
+
+  // Auto-add expired/expiring_soon items to shopping list
+  useEffect(() => {
+    const autoItems = inventory.filter(
+      (i) => i.status === "expired" || i.status === "expiring_soon"
+    );
+    if (autoItems.length === 0) return;
+    const currentList = getShoppingList(userId);
+    const toAdd = autoItems.filter(
+      (item) => !currentList.some((s) => s.fromInventoryId === item.id)
+    );
+    if (toAdd.length === 0) return;
+    const newEntries: ShoppingListItem[] = toAdd.map((item) => ({
+      id: item.id,
+      name: item.name,
+      category: item.category,
+      quantity: item.quantity,
+      quantity_unit: item.quantity_unit,
+      checked: false,
+      addedAt: new Date().toISOString(),
+      fromInventoryId: item.id,
+    }));
+    const updatedList = [...currentList, ...newEntries];
+    saveShoppingList(userId, updatedList);
+    setShoppingList(updatedList);
+    showToast("Kuch items shopping list mein add ho gaye 🛒", "info");
+  }, [inventory, userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Custom Categories ──
   const { customCategories, addCategory, deleteCategory } = useCategories(userId);
@@ -144,6 +190,12 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
   const expiredItems = inventory.filter((i) => i.status === "expired");
   const expiringSoonItems = inventory.filter((i) => i.status === "expiring_soon");
   const showAlert = !alertDismissed && (expiredItems.length > 0 || expiringSoonItems.length > 0);
+
+  // Items to suggest for restock: expired or expiring soon, not already in shopping list
+  const suggestedRestockItems = [...expiredItems, ...expiringSoonItems].filter(
+    (item) => !shoppingList.some((s) => s.fromInventoryId === item.id)
+  );
+  const showRestockBanner = !shoppingBannerDismissed && suggestedRestockItems.length > 0 && !showShoppingList;
 
   function computeStatus(expiry_date: string): InventoryItem["status"] {
     const today = new Date();
@@ -448,6 +500,26 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
     </div>
   );
 
+  /* ── Restock Banner ── */
+  const RestockBanner = () => !showRestockBanner ? null : (
+    <div style={{ background: "rgba(22,163,74,0.1)", border: "1px solid rgba(22,163,74,0.25)", borderRadius: "12px", padding: "10px 14px", marginBottom: "10px", display: "flex", alignItems: "center", gap: "10px" }}>
+      <span style={{ fontSize: 18, flexShrink: 0 }}>🛒</span>
+      <div style={{ flex: 1 }}>
+        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#16a34a" }}>Restock Reminder</p>
+        <p style={{ margin: 0, fontSize: 12, color: "var(--sw-muted)" }}>
+          {suggestedRestockItems.length} item{suggestedRestockItems.length > 1 ? "s" : ""} khatam hone {suggestedRestockItems.length > 1 ? "wale hain" : "wala hai"} — repurchase karein?
+        </p>
+      </div>
+      <button
+        onClick={() => setShowShoppingList(true)}
+        style={{ fontSize: 12, fontWeight: 700, color: "#fff", background: "#16a34a", border: "none", borderRadius: 8, padding: "6px 12px", cursor: "pointer", whiteSpace: "nowrap" }}
+      >
+        Dekho
+      </button>
+      <button onClick={() => setShoppingBannerDismissed(true)} style={{ background: "none", border: "none", color: "var(--sw-muted)", fontSize: 14, cursor: "pointer", flexShrink: 0, lineHeight: 1 }}>✕</button>
+    </div>
+  );
+
   return (
     <>
       {/* ══════════════════════════════════════════
@@ -465,6 +537,13 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
               )}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              {/* Shopping Cart button */}
+              <button className="sw-icon-btn" onClick={() => setShowShoppingList(true)} aria-label="Shopping list" style={{ position: "relative" }}>
+                <ShoppingCartIcon />
+                {(shoppingList.filter(i => !i.checked).length > 0 || suggestedRestockItems.length > 0) && (
+                  <span style={{ position: "absolute", top: 2, right: 2, width: 8, height: 8, borderRadius: "50%", background: suggestedRestockItems.length > 0 ? "#eab308" : "#16a34a", border: "2px solid var(--sw-bg)" }} />
+                )}
+              </button>
               <button className="sw-icon-btn" onClick={toggleTheme} aria-label="Toggle theme">
                 {theme === "dark" ? <SunIcon /> : <MoonIcon />}
               </button>
@@ -508,6 +587,7 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
 
           <OfflineBanner />
           <AlertBanner cls="sw-alert-card" />
+          <RestockBanner />
 
           {/* Search + Sort */}
           <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
@@ -689,6 +769,13 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
             <button className="dsk-add-btn" onClick={() => setShowModal(true)}>
               <PlusIcon /> Add Item
             </button>
+            {/* Shopping Cart button */}
+            <button className="dsk-icon-btn" onClick={() => setShowShoppingList(true)} title="Shopping List" style={{ position: "relative" }}>
+              <ShoppingCartIcon />
+              {(shoppingList.filter(i => !i.checked).length > 0 || suggestedRestockItems.length > 0) && (
+                <span style={{ position: "absolute", top: 4, right: 4, width: 7, height: 7, borderRadius: "50%", background: suggestedRestockItems.length > 0 ? "#eab308" : "#16a34a", border: "2px solid var(--sw-bg)" }} />
+              )}
+            </button>
             <button className="dsk-icon-btn" onClick={toggleTheme} title={theme === "dark" ? "Light mode" : "Dark mode"}>
               {theme === "dark" ? <SunIcon /> : <MoonIcon />}
             </button>
@@ -740,6 +827,7 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
           <main className="dsk-main">
             <OfflineBanner />
             <AlertBanner cls="sw-alert-card" />
+            <RestockBanner />
 
             <div className="dsk-main-header">
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -902,6 +990,20 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
           </>
         )}
       </div>
+
+      {/* Shopping List Panel (shared – rendered outside layout divs to avoid transform stacking issues) */}
+      {showShoppingList && (
+        <>
+          <div className="dsk-backdrop" onClick={() => setShowShoppingList(false)} />
+          <ShoppingList
+            userId={userId}
+            shoppingList={shoppingList}
+            setShoppingList={setShoppingList}
+            suggestedItems={suggestedRestockItems}
+            onClose={() => setShowShoppingList(false)}
+          />
+        </>
+      )}
 
       {/* Add Item Modal (shared) */}
       {showModal && (
