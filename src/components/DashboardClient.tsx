@@ -76,7 +76,7 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
   const good = inventory.filter((i) => i.status === "good").length;
 
   return (
-    <div className="sw-bg" style={{ minHeight: "100dvh", paddingBottom: "calc(5.5rem + env(safe-area-inset-bottom))" }}>
+    <div className="sw-bg" style={{ minHeight: "100dvh", paddingBottom: "calc(5rem + env(safe-area-inset-bottom))" }}>
 
       {/* ── Header ── */}
       <header className="sw-header" style={{ paddingTop: "env(safe-area-inset-top)" }}>
@@ -179,19 +179,19 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
             ))}
           </div>
         )}
+        {/* ── FAB row (sticky, always inside column) ── */}
+        <div className="sw-fab-row">
+          <button
+            onClick={() => setShowModal(true)}
+            className="sw-fab"
+            aria-label="Add item"
+          >
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+        </div>
       </div>
-
-      {/* ── FAB ── */}
-      <button
-        onClick={() => setShowModal(true)}
-        className="sw-fab"
-        style={{ bottom: "calc(5rem + env(safe-area-inset-bottom))" }}
-        aria-label="Add item"
-      >
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-      </button>
 
       {/* ── Settings bottom sheet ── */}
       {showSettings && (
