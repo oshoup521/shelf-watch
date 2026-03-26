@@ -6,6 +6,7 @@ import ItemCard from "@/components/ItemCard";
 import AddItemModal from "@/components/AddItemModal";
 import EditItemModal from "@/components/EditItemModal";
 import ShoppingList from "@/components/ShoppingList";
+import AnalyticsModal from "@/components/AnalyticsModal";
 import { subscribeToPush, getNotificationStatus, unsubscribeFromPush } from "@/lib/pushNotifications";
 import { showToast } from "@/lib/toastStore";
 import { useCategories } from "@/hooks/useCategories";
@@ -60,6 +61,15 @@ const ShoppingCartIcon = () => (
   </svg>
 );
 
+const BarChartIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="20" x2="18" y2="10"/>
+    <line x1="12" y1="20" x2="12" y2="4"/>
+    <line x1="6" y1="20" x2="6" y2="14"/>
+    <line x1="2" y1="20" x2="22" y2="20"/>
+  </svg>
+);
+
 export default function DashboardClient({ initialInventory, userId }: Props) {
   const [inventory, setInventory] = useState<InventoryItem[]>(initialInventory);
   const [filter, setFilter] = useState<Filter>("all");
@@ -78,6 +88,7 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
 
   // ── Shopping List ──
   const [showShoppingList, setShowShoppingList] = useState(false);
@@ -537,6 +548,10 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
               )}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              {/* Analytics button */}
+              <button className="sw-icon-btn" onClick={() => setShowAnalytics(true)} aria-label="Analytics">
+                <BarChartIcon />
+              </button>
               {/* Shopping Cart button */}
               <button className="sw-icon-btn" onClick={() => setShowShoppingList(true)} aria-label="Shopping list" style={{ position: "relative" }}>
                 <ShoppingCartIcon />
@@ -769,6 +784,10 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
             <button className="dsk-add-btn" onClick={() => setShowModal(true)}>
               <PlusIcon /> Add Item
             </button>
+            {/* Analytics button */}
+            <button className="dsk-icon-btn" onClick={() => setShowAnalytics(true)} title="Analytics">
+              <BarChartIcon />
+            </button>
             {/* Shopping Cart button */}
             <button className="dsk-icon-btn" onClick={() => setShowShoppingList(true)} title="Shopping List" style={{ position: "relative" }}>
               <ShoppingCartIcon />
@@ -990,6 +1009,11 @@ export default function DashboardClient({ initialInventory, userId }: Props) {
           </>
         )}
       </div>
+
+      {/* Analytics Modal (shared) */}
+      {showAnalytics && (
+        <AnalyticsModal inventory={inventory} onClose={() => setShowAnalytics(false)} />
+      )}
 
       {/* Shopping List Panel (shared – rendered outside layout divs to avoid transform stacking issues) */}
       {showShoppingList && (
